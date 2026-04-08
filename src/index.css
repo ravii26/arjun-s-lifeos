@@ -2,104 +2,140 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+  :root,
+  [data-theme="dark"] {
+    --background: #08080F;
+    --surface-1: #111119;
+    --surface-2: #18181F;
+    --surface-3: #1E1E28;
+    --border: rgba(255,255,255,0.07);
+    --border-strong: rgba(255,255,255,0.12);
+    --primary: #7C6FF7;
+    --primary-hover: #9B96FA;
+    --primary-muted-bg: rgba(124,111,247,0.12);
+    --teal: #1DB37E;
+    --teal-muted-bg: rgba(29,179,126,0.12);
+    --amber: #C4840A;
+    --amber-muted-bg: rgba(196,132,10,0.12);
+    --text-primary: #EEEDF8;
+    --text-secondary: #9897B8;
+    --text-muted: #5C5B78;
+    --delete-red: #E05252;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --area-career: #7C6FF7;
+    --area-health: #1DB37E;
+    --area-mind: #4A90D9;
+    --area-finance: #C4840A;
+    --area-relationships: #E0607E;
+    --area-creative: #E8850C;
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+  [data-theme="light"] {
+    --background: #F5F4FF;
+    --surface-1: #FFFFFF;
+    --surface-2: #F0EFFA;
+    --surface-3: #E8E7F5;
+    --border: rgba(0,0,0,0.07);
+    --border-strong: rgba(0,0,0,0.12);
+    --primary: #6055E8;
+    --primary-hover: #7C6FF7;
+    --primary-muted-bg: rgba(96,85,232,0.10);
+    --teal: #0F9468;
+    --teal-muted-bg: rgba(15,148,104,0.10);
+    --amber: #A06C00;
+    --amber-muted-bg: rgba(160,108,0,0.10);
+    --text-primary: #16151F;
+    --text-secondary: #4A4868;
+    --text-muted: #8887A8;
+    --delete-red: #D04040;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --area-career: #6055E8;
+    --area-health: #0F9468;
+    --area-mind: #3A7BC8;
+    --area-finance: #A06C00;
+    --area-relationships: #D04E6A;
+    --area-creative: #D07808;
   }
-}
 
-@layer base {
   * {
-    @apply border-border;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
   }
 
   body {
-    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--background);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    transition: background 300ms ease, color 300ms ease;
+  }
+}
+
+@layer utilities {
+  .card-base {
+    background: var(--surface-1);
+    border: 0.5px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+
+  .card-elevated {
+    background: var(--surface-2);
+    border: 0.5px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+
+  .interactive {
+    transition: background 150ms ease, transform 80ms ease;
+    cursor: pointer;
+  }
+  .interactive:hover {
+    background: var(--surface-3);
+  }
+  .interactive:active {
+    transform: scale(0.98);
+  }
+  .interactive:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  @keyframes pulse-border {
+    0%, 100% { border-color: var(--amber); opacity: 1; }
+    50% { border-color: var(--amber); opacity: 0.5; }
+  }
+
+  @keyframes habit-fill {
+    0% { transform: scale(0.8); opacity: 0; }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 200ms ease forwards;
+  }
+
+  .animate-pulse-border {
+    animation: pulse-border 2s ease-in-out infinite;
+  }
+
+  .animate-pulse-dot {
+    animation: pulse-dot 1.5s ease-in-out infinite;
   }
 }
