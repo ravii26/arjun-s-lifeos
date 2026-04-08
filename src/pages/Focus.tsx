@@ -473,9 +473,7 @@ const Focus = () => {
           background: 'var(--primary)', border: 'none', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: '#fff', zIndex: 40,
-          boxShadow: 'none',
         }}
-        className="interactive md:right-[calc(50%-340px+20px)]"
       >
         {Icons.plus()}
       </button>
