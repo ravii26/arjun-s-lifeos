@@ -1,27 +1,26 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import Index from "./pages/Index.tsx";
-import NotFound from "./pages/NotFound.tsx";
-
-const queryClient = new QueryClient();
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { AppProvider } from "./context/AppContext";
+import { AppLayout } from "./components/AppLayout";
+import Dashboard from "./pages/Dashboard";
+import Focus from "./pages/Focus";
+import { VaultPlaceholder, LearnPlaceholder, ReviewPlaceholder, AreaDetailPlaceholder } from "./pages/Placeholders";
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+  <AppProvider>
+    <BrowserRouter>
+      <AppLayout>
         <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/focus" element={<Focus />} />
+          <Route path="/vault" element={<VaultPlaceholder />} />
+          <Route path="/learn" element={<LearnPlaceholder />} />
+          <Route path="/review" element={<ReviewPlaceholder />} />
+          <Route path="/areas/:id" element={<AreaDetailPlaceholder />} />
         </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+      </AppLayout>
+    </BrowserRouter>
+  </AppProvider>
 );
 
 export default App;
