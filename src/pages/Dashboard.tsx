@@ -154,7 +154,8 @@ const ScoreRing = ({ score }: { score: number }) => {
 };
 
 const Dashboard = () => {
-  const { tasks, habits, areaScores, weeklyScore, day, theme, toggleTheme } = useApp();
+  const { tasks, habits, areaScores, weeklyScore, day, theme, toggleTheme, pendingResourceCount } = useApp();
+  const navigate = useNavigate();
   const todayTasks = tasks.filter(t => t.isToday);
   const doneCount = todayTasks.filter(t => t.completed).length;
   const habitsLogged = habits.filter(h => h.loggedToday).length;
