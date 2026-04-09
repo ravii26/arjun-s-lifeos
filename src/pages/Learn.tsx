@@ -789,7 +789,7 @@ const ResourcesTab = () => {
             background: 'var(--surface-1)', border: '0.5px solid var(--border)',
             borderLeft: item.daysAgo >= 3 ? '2px solid var(--amber)' : '0.5px solid var(--border)',
             borderRadius: 14, padding: 16, marginBottom: 8,
-            background2: item.daysAgo >= 3 ? 'var(--amber-muted-bg)' : undefined,
+            ...(item.daysAgo >= 3 ? { background: 'color-mix(in srgb, var(--amber) 5%, var(--surface-1))' } : {}),
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ flex: 1 }}>
