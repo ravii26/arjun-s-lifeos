@@ -6,8 +6,8 @@ import { useApp } from '../context/AppContext';
 const navItems = [
   { path: '/dashboard', label: 'Home', icon: Icons.home, locked: false },
   { path: '/focus', label: 'Focus', icon: Icons.focus, locked: false },
-  { path: '/vault', label: 'Vault', icon: Icons.vault, locked: true },
-  { path: '/learn', label: 'Learn', icon: Icons.learn, locked: true },
+  { path: '/vault', label: 'Vault', icon: Icons.vault, locked: false },
+  { path: '/learn', label: 'Learn', icon: Icons.learn, locked: false },
   { path: '/review', label: 'Review', icon: Icons.review, locked: true },
 ];
 
