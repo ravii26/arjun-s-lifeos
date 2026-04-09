@@ -102,4 +102,105 @@ export const Icons = {
       <path d="M5 7V5C5 3.34315 6.34315 2 8 2C9.65685 2 11 3.34315 11 5V7" />
     </svg>
   ),
+  quote: () => (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 10C3 7 5 5 8 5V7C6 7 5 8 5 10H8V15H3V10Z" />
+      <path d="M11 10C11 7 13 5 16 5V7C14 7 13 8 13 10H16V15H11V10Z" />
+    </svg>
+  ),
+  video: () => (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="12" height="12" rx="2" />
+      <path d="M14 8L18 5.5V14.5L14 12" />
+    </svg>
+  ),
+  note: () => (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 3H16C16.5523 3 17 3.44772 17 4V16C17 16.5523 16.5523 17 16 17H4C3.44772 17 3 16.5523 3 16V4C3 3.44772 3.44772 3 4 3Z" />
+      <path d="M7 7H13M7 10H13M7 13H10" />
+    </svg>
+  ),
+  win: () => (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 2L12.5 7.5L18 8.5L14 12.5L15 18L10 15.5L5 18L6 12.5L2 8.5L7.5 7.5L10 2Z" />
+    </svg>
+  ),
+  voiceNote: () => (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="7" y="2" width="6" height="10" rx="3" />
+      <path d="M4 10C4 13.3137 6.68629 16 10 16C13.3137 16 16 13.3137 16 10" />
+      <path d="M10 16V18" />
+    </svg>
+  ),
+  image: () => (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="14" height="14" rx="2" />
+      <circle cx="7.5" cy="7.5" r="1.5" />
+      <path d="M17 13L13 9L5 17" />
+    </svg>
+  ),
+  search: () => (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="9" r="6" />
+      <path d="M13.5 13.5L17 17" />
+    </svg>
+  ),
+  chevronDown: () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 6L8 10L12 6" />
+    </svg>
+  ),
+  chevronRight: () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 4L10 8L6 12" />
+    </svg>
+  ),
+  arrowLeft: () => (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 10H5M5 10L9 6M5 10L9 14" />
+    </svg>
+  ),
+  book: () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 3H6C7 3 7.5 3.5 7.5 4.5V14C7.5 13.2 7 12.5 6 12.5H2V3Z" />
+      <path d="M14 3H10C9 3 8.5 3.5 8.5 4.5V14C8.5 13.2 9 12.5 10 12.5H14V3Z" />
+    </svg>
+  ),
+  checkCircle: () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--teal)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="8" cy="8" r="6" />
+      <path d="M5.5 8L7 9.5L10.5 6" />
+    </svg>
+  ),
+  lockSmall: () => (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="6" width="8" height="6" rx="1" />
+      <path d="M4.5 6V4.5C4.5 3.11929 5.61929 2 7 2C8.38071 2 9.5 3.11929 9.5 4.5V6" />
+    </svg>
+  ),
+  quoteOpen: () => (
+    <svg width="64" height="64" viewBox="0 0 64 64" fill="var(--primary)" opacity="0.3">
+      <path d="M10 32C10 22 16 16 26 16V22C20 22 18 26 18 32H26V48H10V32Z" />
+      <path d="M36 32C36 22 42 16 52 16V22C46 22 44 26 44 32H52V48H36V32Z" />
+    </svg>
+  ),
+  drag: () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+      <circle cx="6" cy="4" r="1" /><circle cx="10" cy="4" r="1" />
+      <circle cx="6" cy="8" r="1" /><circle cx="10" cy="8" r="1" />
+      <circle cx="6" cy="12" r="1" /><circle cx="10" cy="12" r="1" />
+    </svg>
+  ),
+  trash: () => (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 4H12M5 4V2.5H9V4M5 6V11M9 6V11M3 4L3.5 12.5H10.5L11 4" />
+    </svg>
+  ),
+  info: () => (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="7" cy="7" r="5.5" />
+      <path d="M7 6V10M7 4.5V4.5" />
+      <circle cx="7" cy="4.25" r="0.5" fill="currentColor" />
+    </svg>
+  ),
 };
