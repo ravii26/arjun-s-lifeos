@@ -278,6 +278,24 @@ const Dashboard = () => {
       {/* Weekly Score Ring */}
       <ScoreRing score={weeklyScore} />
 
+      {/* Pending resources alert */}
+      {pendingResourceCount > 0 && (
+        <div
+          onClick={() => navigate('/learn')}
+          className="interactive"
+          style={{
+            background: 'var(--amber-muted-bg)', border: '0.5px solid var(--border)',
+            borderRadius: 14, padding: '12px 20px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}
+        >
+          <span style={{ fontSize: 13, color: 'var(--amber)', fontWeight: 500 }}>
+            {pendingResourceCount} resource{pendingResourceCount > 1 ? 's' : ''} waiting for decision
+          </span>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>→</span>
+        </div>
+      )}
+
       {/* Vault nudge */}
       <div style={{
         background: 'var(--primary-muted-bg)',
@@ -290,6 +308,7 @@ const Dashboard = () => {
           Relationships has been quiet. Your vault has something for this.
         </p>
         <button
+          onClick={() => navigate('/vault')}
           className="interactive"
           style={{
             marginTop: 12, background: 'transparent', border: '0.5px solid var(--border)',
