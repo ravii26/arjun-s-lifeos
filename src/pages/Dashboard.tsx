@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp, AREA_COLORS, type LifeArea } from '../context/AppContext';
 import { Icons } from '../components/Icons';
 
