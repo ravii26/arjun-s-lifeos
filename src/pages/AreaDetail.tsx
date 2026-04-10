@@ -46,8 +46,13 @@ const AreaDetail = () => {
   const navigate = useNavigate();
   const { areaScores, tasks, habits, notes, toggleTask } = useApp();
 
-  const area = SLUG_TO_AREA[id || ''];
-  if (!area) return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>Area not found</div>;
+  const area = SLUG_TO_AREA[id || ''] || 'Career & Skills';
+
+  const [phase, setPhase] = useState('Building');
+  const [goal, setGoal] = useState(AREA_GOALS[area]);
+  const [editingGoal, setEditingGoal] = useState(false);
+
+  if (!SLUG_TO_AREA[id || '']) return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>Area not found</div>;
 
   const areaScore = areaScores.find(a => a.area === area)!;
   const areaColor = AREA_COLORS[area];
@@ -56,10 +61,6 @@ const AreaDetail = () => {
   const areaTasks = tasks.filter(t => t.area === area);
   const areaNotes = notes.filter(n => n.area === area);
   const trend = TREND_DATA[area];
-
-  const [phase, setPhase] = useState('Building');
-  const [goal, setGoal] = useState(AREA_GOALS[area]);
-  const [editingGoal, setEditingGoal] = useState(false);
 
   // SVG chart
   const chartW = 280, chartH = 140, padX = 30, padY = 20;

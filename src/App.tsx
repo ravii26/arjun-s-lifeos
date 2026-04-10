@@ -5,7 +5,8 @@ import Dashboard from "./pages/Dashboard";
 import Focus from "./pages/Focus";
 import Vault from "./pages/Vault";
 import Learn from "./pages/Learn";
-import { ReviewPlaceholder, AreaDetailPlaceholder } from "./pages/Placeholders";
+import Review from "./pages/Review";
+import AreaDetail from "./pages/AreaDetail";
 
 const App = () => (
   <AppProvider>
@@ -17,8 +18,8 @@ const App = () => (
           <Route path="/focus" element={<Focus />} />
           <Route path="/vault" element={<Vault />} />
           <Route path="/learn" element={<Learn />} />
-          <Route path="/review" element={<ReviewPlaceholder />} />
-          <Route path="/areas/:id" element={<AreaDetailPlaceholder />} />
+          <Route path="/review" element={<Review />} />
+          <Route path="/areas/:id" element={<AreaDetail />} />
         </Routes>
       </AppLayout>
     </BrowserRouter>
