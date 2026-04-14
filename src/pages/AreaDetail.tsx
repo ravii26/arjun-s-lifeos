@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp, AREA_COLORS, type LifeArea } from '../context/AppContext';
 import { Icons } from '../components/Icons';
@@ -51,6 +51,11 @@ const AreaDetail = () => {
   const [phase, setPhase] = useState('Building');
   const [goal, setGoal] = useState(AREA_GOALS[area]);
   const [editingGoal, setEditingGoal] = useState(false);
+
+  useEffect(() => {
+    setGoal(AREA_GOALS[area]);
+    setEditingGoal(false);
+  }, [area]);
 
   if (!SLUG_TO_AREA[id || '']) return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>Area not found</div>;
 

@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp, AREA_COLORS, type LifeArea } from '../context/AppContext';
+import { useApp, AREA_COLORS, type DemoPresetName, type LifeArea } from '../context/AppContext';
 import { Icons } from '../components/Icons';
+import { SectionHeader } from '../components/SectionHeader';
+import { StatCard } from '../components/StatCard';
 
 const AREA_SHORT: Record<LifeArea, string> = {
   'Career & Skills': 'Career', 'Health & Body': 'Health', 'Mind & Learning': 'Mind',
@@ -118,13 +120,44 @@ const ScoreRing = ({ score }: { score: number }) => {
 
 const QUICK_FOCUSES = ['LifeOS build', 'DSA practice', 'Workout', 'Freelance'];
 
+const DEMO_PRESETS: Array<{ key: DemoPresetName; label: string; hint: string }> = [
+  { key: 'momentum', label: 'Momentum Week', hint: 'High execution and strong streaks' },
+  { key: 'slump', label: 'Slump Week', hint: 'Low output and neglected signals' },
+  { key: 'recovery', label: 'Recovery Week', hint: 'Stabilizing with small wins' },
+];
+
+const WALKTHROUGH_STEPS: Array<{ title: string; detail: string; route?: string }> = [
+  { title: 'Daily orientation', detail: 'Start at Dashboard to see AI briefing, score pulse, and immediate focus.' },
+  { title: 'Execution loop', detail: 'Move to Focus to complete today tasks and habits quickly.', route: '/focus' },
+  { title: 'Learning conversion', detail: 'Use Learn resources to convert content into tasks or notes.', route: '/learn' },
+  { title: 'Emotional backup', detail: 'Open Vault for difficult days and confidence resets.', route: '/vault' },
+  { title: 'Weekly insight', detail: 'Finish in Review for patterns, confidence tags, and next-week commitment.', route: '/review' },
+];
+
 const Dashboard = () => {
-  const { tasks, habits, areaScores, weeklyScore, day, theme, toggleTheme, pendingResourceCount, dayRating, setDayRating } = useApp();
+  const {
+    tasks,
+    habits,
+    areaScores,
+    weeklyScore,
+    day,
+    theme,
+    toggleTheme,
+    pendingResourceCount,
+    dayRating,
+    setDayRating,
+    canShowAIMessage,
+    trackAIMessage,
+    applyDemoPreset,
+    presentationMode,
+  } = useApp();
   const navigate = useNavigate();
   const todayTasks = tasks.filter(t => t.isToday);
   const doneCount = todayTasks.filter(t => t.completed).length;
   const allDone = todayTasks.length > 0 && doneCount === todayTasks.length;
   const habitsLogged = habits.filter(h => h.loggedToday).length;
+  const bestStreak = habits.reduce((max, habit) => Math.max(max, habit.streak), 0);
+  const relationshipsScore = areaScores.find((area) => area.area === 'Relationships')?.score ?? 0;
 
   const [morningDismissed, setMorningDismissed] = useState(false);
   const [eveningDismissed, setEveningDismissed] = useState(false);
@@ -134,6 +167,14 @@ const Dashboard = () => {
   const [eveningNote, setEveningNote] = useState('');
   const [eveningSubmitted, setEveningSubmitted] = useState(false);
   const [showVaultNudgeFromRating, setShowVaultNudgeFromRating] = useState(false);
+  const [showBriefingWhy, setShowBriefingWhy] = useState(false);
+  const [trackedBriefing, setTrackedBriefing] = useState(false);
+  const [trackedNudge, setTrackedNudge] = useState(false);
+  const [activePreset, setActivePreset] = useState<DemoPresetName | null>(null);
+  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
+  const [walkthroughStep, setWalkthroughStep] = useState(0);
+  const [presetAnimationKey, setPresetAnimationKey] = useState(0);
+  const [walkthroughAnimationKey, setWalkthroughAnimationKey] = useState(0);
 
   const now = new Date();
   const isEvening = now.getHours() >= 19;
@@ -148,6 +189,67 @@ const Dashboard = () => {
     }
   };
 
+  const showBriefing = canShowAIMessage('briefing', 1);
+  const showRelationshipNudge = relationshipsScore < 40 && canShowAIMessage('nudge', 2);
+
+  const currentWalkthrough = WALKTHROUGH_STEPS[walkthroughStep];
+  const isLastWalkthroughStep = walkthroughStep === WALKTHROUGH_STEPS.length - 1;
+
+  useEffect(() => {
+    if (showBriefing && !trackedBriefing) {
+      trackAIMessage('briefing');
+      setTrackedBriefing(true);
+    }
+  }, [showBriefing, trackedBriefing, trackAIMessage]);
+
+  useEffect(() => {
+    if (showRelationshipNudge && !trackedNudge) {
+      trackAIMessage('nudge');
+      setTrackedNudge(true);
+    }
+  }, [showRelationshipNudge, trackedNudge, trackAIMessage]);
+
+  const handlePresetApply = (preset: DemoPresetName) => {
+    applyDemoPreset(preset);
+    setActivePreset(preset);
+    setPresetAnimationKey(k => k + 1);
+  };
+
+  const handleWalkthroughOpen = () => {
+    setWalkthroughStep(0);
+    setWalkthroughOpen(true);
+    setWalkthroughAnimationKey(k => k + 1);
+    navigate('/dashboard');
+  };
+
+  const handleWalkthroughClose = () => {
+    setWalkthroughOpen(false);
+    setWalkthroughStep(0);
+  };
+
+  const handleWalkthroughSkipTo = (step: number) => {
+    setWalkthroughStep(step);
+    setWalkthroughAnimationKey(k => k + 1);
+  };
+
+  const handleWalkthroughNext = () => {
+    if (isLastWalkthroughStep) {
+      handleWalkthroughClose();
+      return;
+    }
+
+    const nextStep = walkthroughStep + 1;
+    setWalkthroughStep(nextStep);
+    setWalkthroughAnimationKey(k => k + 1);
+  };
+
+  const handleWalkthroughBack = () => {
+    if (walkthroughStep === 0) return;
+    const previousStep = walkthroughStep - 1;
+    setWalkthroughStep(previousStep);
+    setWalkthroughAnimationKey(k => k + 1);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Top bar */}
@@ -155,6 +257,11 @@ const Dashboard = () => {
         <div>
           <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>Day {day} </span>
           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>of building yourself</span>
+          {presentationMode && (
+            <div className="presentation-mode-badge" style={{ marginLeft: 12 }}>
+              ▶ Live demo
+            </div>
+          )}
         </div>
         <div className="hidden md:flex" style={{ alignItems: 'center', gap: 8 }}>
           <button onClick={toggleTheme} className="interactive" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4, display: 'flex' }}>
@@ -166,20 +273,185 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* AI Briefing */}
-      <div style={{
-        background: 'var(--surface-2)', border: '0.5px solid var(--border)',
-        borderLeft: '3px solid var(--primary)', borderRadius: 14, padding: '20px 20px 20px 24px',
+      {/* Demo controls */}
+      <div className="demo-section" key={presetAnimationKey} style={{
+        background: presentationMode ? 'var(--primary-muted-bg)' : 'var(--surface-2)',
+        border: presentationMode ? '0.5px solid var(--primary)' : '0.5px solid var(--border)',
+        borderRadius: 14,
+        padding: '14px 16px',
+        transition: 'all 300ms ease',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          {Icons.sparkle()}
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Today's briefing</span>
+        <SectionHeader title="Demo mode" subtitle="Switch scenario and run a 2-minute guided flow" />
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+          {DEMO_PRESETS.map((preset) => (
+            <button
+              key={preset.key}
+              onClick={() => handlePresetApply(preset.key)}
+              style={{
+                padding: '6px 12px',
+                borderRadius: 20,
+                border: 'none',
+                cursor: 'pointer',
+                background: activePreset === preset.key ? 'var(--primary)' : 'var(--surface-3)',
+                color: activePreset === preset.key ? '#fff' : 'var(--text-muted)',
+                fontSize: 12,
+                fontWeight: 500,
+                transition: 'all 200ms ease',
+              }}
+              title={preset.hint}
+            >
+              {preset.label}
+            </button>
+          ))}
         </div>
-        <p style={{ fontSize: 14, fontStyle: 'italic', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
-          Day 47, Arjun. Career is your strongest area right now — keep the momentum. Relationships has been quiet for 3 weeks, one small action today goes a long way. Your focus: finish the LifeOS dashboard push.
-        </p>
-        <div style={{ marginTop: 12, fontSize: 12, color: 'var(--text-muted)' }}>Day 47 · Week 7</div>
+        <button
+          onClick={handleWalkthroughOpen}
+          className="interactive"
+          style={{
+            width: '100%',
+            padding: '10px 12px',
+            borderRadius: 10,
+            border: presentationMode ? 'none' : '0.5px solid var(--border)',
+            background: presentationMode ? 'var(--primary)' : 'var(--surface-1)',
+            color: presentationMode ? '#fff' : 'var(--text-primary)',
+            fontSize: 13,
+            fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'all 200ms ease',
+          }}
+        >
+          Start guided walkthrough
+        </button>
       </div>
+
+      {/* Guided walkthrough */}
+      {walkthroughOpen && (
+        <div key={walkthroughAnimationKey} className="walkthrough-card" style={{
+          background: 'var(--primary-muted-bg)',
+          border: '0.5px solid var(--border)',
+          borderLeft: '3px solid var(--primary)',
+          borderRadius: 14,
+          padding: '16px 18px',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 500 }}>
+              Walkthrough step {walkthroughStep + 1}/{WALKTHROUGH_STEPS.length}
+            </span>
+            <button
+              onClick={handleWalkthroughClose}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 12 }}
+            >
+              Skip tour
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+            {WALKTHROUGH_STEPS.map((step, index) => (
+              <button
+                key={step.title}
+                onClick={() => handleWalkthroughSkipTo(index)}
+                style={{
+                  border: 'none',
+                  borderRadius: 20,
+                  padding: '4px 10px',
+                  fontSize: 11,
+                  cursor: 'pointer',
+                  background: walkthroughStep === index ? 'var(--primary)' : 'var(--surface-1)',
+                  color: walkthroughStep === index ? '#fff' : 'var(--text-muted)',
+                }}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)' }}>{currentWalkthrough.title}</div>
+          <p style={{ margin: '6px 0 12px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            {currentWalkthrough.detail}
+          </p>
+          {currentWalkthrough.route && (
+            <button
+              onClick={() => navigate(currentWalkthrough.route!)}
+              style={{
+                marginBottom: 10,
+                border: 'none',
+                borderRadius: 8,
+                padding: '7px 10px',
+                background: 'var(--surface-1)',
+                color: 'var(--primary)',
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              Open page
+            </button>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={handleWalkthroughBack}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                borderRadius: 8,
+                border: '0.5px solid var(--border)',
+                background: 'var(--surface-1)',
+                color: 'var(--text-muted)',
+                cursor: walkthroughStep === 0 ? 'not-allowed' : 'pointer',
+                opacity: walkthroughStep === 0 ? 0.5 : 1,
+                transition: 'all 150ms ease',
+              }}
+              disabled={walkthroughStep === 0}
+            >
+              Back
+            </button>
+            <button
+              onClick={handleWalkthroughNext}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                borderRadius: 8,
+                border: 'none',
+                background: 'var(--primary)',
+                color: '#fff',
+                cursor: 'pointer',
+                fontWeight: 500,
+                transition: 'all 150ms ease',
+              }}
+            >
+              {isLastWalkthroughStep ? 'Finish tour' : 'Next'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* AI Briefing */}
+      {showBriefing && (
+        <div style={{
+          background: 'var(--surface-2)', border: '0.5px solid var(--border)',
+          borderLeft: '3px solid var(--primary)', borderRadius: 14, padding: '20px 20px 20px 24px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {Icons.sparkle()}
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Today's briefing</span>
+            </div>
+            <button onClick={() => setShowBriefingWhy((v) => !v)} style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--primary)', fontSize: 12,
+            }}>
+              Why this insight?
+            </button>
+          </div>
+          <p style={{ fontSize: 14, fontStyle: 'italic', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+            Day {day}, Arjun. Career is your strongest area right now. Relationships is still your weakest area, so one small action there changes your balance fastest. Keep your focus on shipping one meaningful task first.
+          </p>
+          {showBriefingWhy && (
+            <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+              Based on: current area scores, today's task completion ({doneCount}/{todayTasks.length || 0}), and recent habit logging.
+            </div>
+          )}
+          <div style={{ marginTop: 12, fontSize: 12, color: 'var(--text-muted)' }}>Day {day} · Week snapshot</div>
+        </div>
+      )}
 
       {/* Morning check-in */}
       {!morningDismissed && !morningSet && (
@@ -281,27 +553,14 @@ const Dashboard = () => {
 
       {/* Score pills */}
       <div style={{ display: 'flex', gap: 12 }}>
-        {[
-          { value: '74', label: energy ? `Energy: ${energy}` : 'Life score', color: 'var(--teal)' },
-          { value: '23d', label: 'Best streak', color: 'var(--primary)' },
-          { value: `${doneCount}/${todayTasks.length}`, label: 'Tasks done', color: 'var(--amber)' },
-        ].map(pill => (
-          <div key={pill.label} style={{
-            flex: 1, background: 'var(--surface-2)', border: '0.5px solid var(--border)',
-            borderRadius: 10, padding: '12px 16px', textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 20, fontWeight: 500, color: pill.color }}>{pill.value}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{pill.label}</div>
-          </div>
-        ))}
+        <StatCard value={String(weeklyScore)} label={energy ? `Energy: ${energy}` : 'Life score'} color="var(--teal)" compact />
+        <StatCard value={`${bestStreak}d`} label="Best streak" color="var(--primary)" compact />
+        <StatCard value={`${doneCount}/${todayTasks.length}`} label="Tasks done" color="var(--amber)" compact />
       </div>
 
       {/* Today's Tasks */}
       <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <span style={{ fontSize: 16, fontWeight: 500 }}>Today's tasks</span>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{doneCount} of {todayTasks.length} done</span>
-        </div>
+        <SectionHeader title="Today's tasks" rightText={`${doneCount} of ${todayTasks.length} done`} />
         {allDone ? (
           <div style={{
             background: 'var(--teal)', borderRadius: 14, padding: 20, textAlign: 'center',
@@ -318,19 +577,13 @@ const Dashboard = () => {
 
       {/* Habits */}
       <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <span style={{ fontSize: 16, fontWeight: 500 }}>Habits</span>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{habitsLogged} of {habits.length} done</span>
-        </div>
+        <SectionHeader title="Habits" rightText={`${habitsLogged} of ${habits.length} done`} />
         {habits.map(h => <HabitRow key={h.id} habit={h} />)}
       </div>
 
       {/* Life Areas */}
       <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <span style={{ fontSize: 16, fontWeight: 500 }}>Life areas</span>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Week 7</span>
-        </div>
+        <SectionHeader title="Life areas" rightText="Week snapshot" />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {areaScores.map(area => {
             const scoreColor = area.score >= 65 ? 'var(--teal)' : area.score >= 35 ? 'var(--amber)' : 'var(--text-muted)';
@@ -395,7 +648,7 @@ const Dashboard = () => {
       )}
 
       {/* Vault nudge (relationship score) */}
-      {areaScores.find(a => a.area === 'Relationships')!.score < 40 && (
+      {showRelationshipNudge && (
         <div style={{
           background: 'var(--primary-muted-bg)', border: '0.5px solid var(--border)',
           borderLeft: '3px solid var(--primary)', borderRadius: 14, padding: 20,

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp, TAG_COLORS, TAG_BG_COLORS, AREA_COLORS, type VaultItem, type VaultItemType, type LifeArea } from '../context/AppContext';
 import { Icons } from '../components/Icons';
+import { BottomSheet } from '../components/BottomSheet';
 
 const AREA_SHORT: Record<LifeArea, string> = {
   'Career & Skills': 'Career', 'Health & Body': 'Health', 'Mind & Learning': 'Mind',
@@ -19,24 +20,6 @@ const typeIcon = (type: VaultItemType) => {
     case 'Note': return Icons.note();
     case 'Win': return Icons.win();
   }
-};
-
-const BottomSheet = ({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) => {
-  if (!open) return null;
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 100 }} onClick={onClose}>
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', transition: 'opacity 250ms ease' }} />
-      <div onClick={e => e.stopPropagation()} style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--surface-2)',
-        borderRadius: '20px 20px 0 0', padding: '12px 20px 32px', maxHeight: '80vh', overflowY: 'auto',
-        animation: 'slideUp 250ms cubic-bezier(0.32, 0.72, 0, 1)',
-      }}>
-        <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--surface-3)', margin: '0 auto 20px' }} />
-        {children}
-      </div>
-      <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
-    </div>
-  );
 };
 
 const VaultDeliveryOverlay = ({ items, open, onClose }: { items: VaultItem[]; open: boolean; onClose: () => void }) => {

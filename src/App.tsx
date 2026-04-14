@@ -7,6 +7,7 @@ import Vault from "./pages/Vault";
 import Learn from "./pages/Learn";
 import Review from "./pages/Review";
 import AreaDetail from "./pages/AreaDetail";
+import NotFound from "./pages/NotFound";
 
 const App = () => (
   <AppProvider>
@@ -20,6 +21,7 @@ const App = () => (
           <Route path="/learn" element={<Learn />} />
           <Route path="/review" element={<Review />} />
           <Route path="/areas/:id" element={<AreaDetail />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </AppLayout>
     </BrowserRouter>

@@ -203,4 +203,11 @@ export const Icons = {
       <circle cx="7" cy="4.25" r="0.5" fill="currentColor" />
     </svg>
   ),
+  presentation: () => (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="14" height="11" rx="1" />
+      <path d="M10 14V18M7 18H13" />
+      <circle cx="10" cy="8.5" r="2.5" fill="var(--primary)" />
+    </svg>
+  ),
 };

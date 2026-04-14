@@ -12,7 +12,7 @@ const navItems = [
 ];
 
 export const DesktopSidebar = () => {
-  const { userName, day, theme, toggleTheme } = useApp();
+  const { userName, day, theme, toggleTheme, presentationMode, togglePresentationMode } = useApp();
   const location = useLocation();
 
   return (
@@ -80,6 +80,21 @@ export const DesktopSidebar = () => {
         >
           {theme === 'dark' ? Icons.sun() : Icons.moon()}
           <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+        </button>
+        <button
+          onClick={togglePresentationMode}
+          className="interactive"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '8px 12px', borderRadius: 10, border: 'none',
+            background: presentationMode ? 'var(--primary-muted-bg)' : 'transparent',
+            color: presentationMode ? 'var(--primary)' : 'var(--text-muted)',
+            fontSize: 12, cursor: 'pointer', fontWeight: presentationMode ? 500 : 400,
+            transition: 'background 150ms ease, color 150ms ease',
+          }}
+        >
+          {Icons.presentation?.() || '📊'}
+          <span>{presentationMode ? 'Presentation ON' : 'Presentation mode'}</span>
         </button>
       </div>
     </aside>

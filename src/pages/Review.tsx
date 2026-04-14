@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp, AREA_COLORS, type LifeArea } from '../context/AppContext';
 import { Icons } from '../components/Icons';
+import { SectionHeader } from '../components/SectionHeader';
+import { StatCard } from '../components/StatCard';
+import { Pill } from '../components/Pill';
 
 const AREA_SHORT: Record<LifeArea, string> = {
   'Career & Skills': 'Career', 'Health & Body': 'Health', 'Mind & Learning': 'Mind',
@@ -38,10 +41,22 @@ const TIME_DATA = [
   { area: 'Creative' as LifeArea, planned: 5, actual: 1 },
 ];
 
-const PATTERNS = [
-  'You complete 94% of tasks on days you focus on LifeOS build. Your best work has a clear single focus.',
-  'Your workout habit drops to 0% on days following an evening rating of 2 or below. How you end today shapes how you start tomorrow.',
-  'Wednesday has been your lowest-scoring day for 5 consecutive weeks. Something about midweek is breaking your rhythm.',
+const PATTERNS: Array<{ text: string; confidence: 'High' | 'Medium' | 'Emerging'; evidence: string[] }> = [
+  {
+    text: 'You complete 94% of tasks on days you focus on LifeOS build. Your best work has a clear single focus.',
+    confidence: 'High',
+    evidence: ['17 focused days analyzed', 'Task completion dropped to 31% on no-focus days', 'Pattern stable for 4 weeks'],
+  },
+  {
+    text: 'Your workout habit drops to 0% on days following an evening rating of 2 or below. How you end today shapes how you start tomorrow.',
+    confidence: 'Medium',
+    evidence: ['6 low-rating days in the sample', 'Workout miss occurred on all next mornings', 'Needs more data for high confidence'],
+  },
+  {
+    text: 'Wednesday has been your lowest-scoring day for 5 consecutive weeks. Something about midweek is breaking your rhythm.',
+    confidence: 'Emerging',
+    evidence: ['5-week weekday trend', 'Wednesday mean score is lowest', 'Still in early-stage pattern detection'],
+  },
 ];
 
 const Review = () => {
@@ -52,6 +67,7 @@ const Review = () => {
   const [reflections, setReflections] = useState(['','','','']);
   const [focusArea, setFocusArea] = useState<LifeArea>('Relationships');
   const [commitment, setCommitment] = useState('');
+  const [expandedPattern, setExpandedPattern] = useState<number | null>(null);
 
   const handleSubmit = () => {
     navigate('/dashboard');
@@ -105,7 +121,7 @@ const Review = () => {
 
       {/* Habits table */}
       <div>
-        <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 12 }}>Habits this week</div>
+        <SectionHeader title="Habits this week" />
         <div style={{ background: 'var(--surface-1)', border: '0.5px solid var(--border)', borderRadius: 14, padding: 16, overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -149,19 +165,9 @@ const Review = () => {
 
       {/* Task performance */}
       <div style={{ display: 'flex', gap: 12 }}>
-        {[
-          { value: '11', label: 'Tasks done', color: 'var(--teal)' },
-          { value: '2', label: 'Tasks missed', color: 'var(--amber)' },
-          { value: '3', label: 'Carried forward', color: 'var(--text-muted)' },
-        ].map(s => (
-          <div key={s.label} style={{
-            flex: 1, background: 'var(--surface-1)', border: '0.5px solid var(--border)',
-            borderRadius: 14, padding: '16px 12px', textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 24, fontWeight: 500, color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{s.label}</div>
-          </div>
-        ))}
+        <StatCard value="11" label="Tasks done" color="var(--teal)" />
+        <StatCard value="2" label="Tasks missed" color="var(--amber)" />
+        <StatCard value="3" label="Carried forward" color="var(--text-muted)" />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         {Icons.flame()}
@@ -172,7 +178,7 @@ const Review = () => {
 
       {/* Time distribution */}
       <div>
-        <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 12 }}>Time distribution</div>
+        <SectionHeader title="Time distribution" />
         <div style={{ background: 'var(--surface-1)', border: '0.5px solid var(--border)', borderRadius: 14, padding: 20 }}>
           {TIME_DATA.map(t => (
             <div key={t.area} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -197,21 +203,45 @@ const Review = () => {
 
       {/* AI Patterns */}
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <span style={{ fontSize: 16, fontWeight: 500 }}>Your patterns</span>
-          {Icons.sparkle()}
-        </div>
+        <SectionHeader title="Your patterns" subtitle="Based on current behavior data" />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {PATTERNS.map((p, i) => (
             <div key={i} style={{
               background: 'var(--surface-2)', border: '0.5px solid var(--border)',
               borderLeft: '2px solid var(--primary)', borderRadius: 14, padding: 16,
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                {Icons.sparkle()}
-                <span style={{ fontSize: 11, color: 'var(--primary)' }}>Pattern detected</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {Icons.sparkle()}
+                  <span style={{ fontSize: 11, color: 'var(--primary)' }}>Pattern detected</span>
+                </div>
+                <Pill
+                  text={`${p.confidence} confidence`}
+                  color={p.confidence === 'High' ? 'var(--teal)' : p.confidence === 'Medium' ? 'var(--amber)' : 'var(--text-muted)'}
+                  background={p.confidence === 'High' ? 'var(--teal-muted-bg)' : p.confidence === 'Medium' ? 'var(--amber-muted-bg)' : 'var(--surface-3)'}
+                />
               </div>
-              <p style={{ fontSize: 13, fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>{p}</p>
+              <p style={{ fontSize: 13, fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>{p.text}</p>
+              <button
+                onClick={() => setExpandedPattern(expandedPattern === i ? null : i)}
+                style={{
+                  marginTop: 10,
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--primary)',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                }}
+              >
+                Why this insight?
+              </button>
+              {expandedPattern === i && (
+                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                  {p.evidence.map((item, idx) => (
+                    <div key={idx}>- {item}</div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
           {/* Locked Layer 3 */}
@@ -232,7 +262,7 @@ const Review = () => {
 
       {/* Reflection fields */}
       <div>
-        <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 12 }}>Reflections</div>
+        <SectionHeader title="Reflections" subtitle="Keep these short and specific" />
         {[
           { label: 'WHAT MOVED ME FORWARD THIS WEEK?', placeholder: 'e.g. Stayed consistent with LifeOS' },
           { label: 'WHAT WASTED MY TIME?', placeholder: 'e.g. Too much YouTube in evenings' },
@@ -261,7 +291,7 @@ const Review = () => {
 
       {/* Next week setup */}
       <div>
-        <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 12 }}>Next week</div>
+        <SectionHeader title="Next week" />
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>Which area needs most attention?</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
           {ALL_AREAS.map(a => (
