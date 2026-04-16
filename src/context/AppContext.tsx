@@ -1,15 +1,31 @@
 import { ReactNode, createContext, useContext, useEffect, useMemo, useReducer } from "react";
-import { AppState, Course, LifeArea, Note, Resource, Task, VaultItem } from "../data/types";
 import {
+  ActionConversion,
+  AppState,
+  Course,
+  LifeArea,
+  Note,
+  NotebookEntry,
+  Resource,
+  Task,
+  TimeBlock,
+  VaultItem,
+} from "../data/types";
+import {
+  actionHistory,
   areas,
   eveningCheckIn,
   habits,
   learnCourses,
   learnNotes,
   morningCheckIn,
+  notebookEntries,
   pendingResources,
   resources,
   tasks,
+  timeBlocks,
+  topicLinks,
+  topics,
   vaultItems,
   weeklyReflection,
 } from "../data/seed";
@@ -37,8 +53,13 @@ type Action =
   | { type: "SET_EVENING_CHECKIN"; payload: { rating: number | null; note: string } }
   | { type: "DISMISS_EVENING" }
   | { type: "SAVE_REFLECTION"; payload: AppState["weeklyReflection"] }
-  | { type: "MARK_LESSON_COMPLETE" };
-  
+  | { type: "MARK_LESSON_COMPLETE" }
+  | { type: "ADD_TOPIC_NOTE_LINK"; payload: { topicId: string; noteId: string } }
+  | { type: "CONVERT_NOTEBOOK_TO_NOTE"; payload: { entryId: string } }
+  | { type: "ADD_TIME_BLOCK"; payload: { block: TimeBlock } }
+  | { type: "UPDATE_TIME_BLOCK_STATUS"; payload: { blockId: string; status: TimeBlock["status"] } }
+  | { type: "ADD_ACTION_HISTORY"; payload: { item: ActionConversion } }
+  | { type: "ADD_NOTEBOOK_ENTRY"; payload: { entry: NotebookEntry } };
 
 interface AppContextValue {
   state: AppState;
@@ -119,6 +140,11 @@ const initialState: AppState = {
   },
   eveningCheckIn,
   weeklyReflection,
+  topics,
+  topicLinks,
+  notebookEntries,
+  timeBlocks,
+  actionHistory,
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -291,6 +317,78 @@ const appReducer = (state: AppState, action: Action): AppState => {
             progress: nextProgress,
           };
         }),
+      };
+    }
+    case "ADD_TOPIC_NOTE_LINK": {
+      const topic = state.topics.find((item) => item.id === action.payload.topicId);
+      const note = state.learnNotes.find((item) => item.id === action.payload.noteId);
+      if (!topic || !note) {
+        return state;
+      }
+      const linkLabel = note.title.length > 28 ? `${note.title.slice(0, 28)}...` : note.title;
+      return {
+        ...state,
+        topicLinks: [
+          {
+            id: `tl-${Date.now()}`,
+            topicId: topic.id,
+            label: linkLabel,
+            strength: 66,
+          },
+          ...state.topicLinks,
+        ],
+      };
+    }
+    case "CONVERT_NOTEBOOK_TO_NOTE": {
+      const entry = state.notebookEntries.find((item) => item.id === action.payload.entryId);
+      if (!entry || entry.convertedNoteId) {
+        return state;
+      }
+      const noteId = `n-${Date.now()}`;
+      const note: Note = {
+        id: noteId,
+        areaId: entry.areaId,
+        type: "Research",
+        title: entry.title,
+        preview: entry.body.slice(0, 80),
+        source: "Notebook",
+        createdAt: "Just now",
+        body: entry.body,
+        keyPoints: [entry.body.slice(0, 60)],
+      };
+
+      return {
+        ...state,
+        learnNotes: [note, ...state.learnNotes],
+        notebookEntries: state.notebookEntries.map((item) =>
+          item.id === entry.id ? { ...item, convertedNoteId: noteId } : item,
+        ),
+      };
+    }
+    case "ADD_TIME_BLOCK": {
+      return {
+        ...state,
+        timeBlocks: [...state.timeBlocks, action.payload.block],
+      };
+    }
+    case "UPDATE_TIME_BLOCK_STATUS": {
+      return {
+        ...state,
+        timeBlocks: state.timeBlocks.map((block) =>
+          block.id === action.payload.blockId ? { ...block, status: action.payload.status } : block,
+        ),
+      };
+    }
+    case "ADD_ACTION_HISTORY": {
+      return {
+        ...state,
+        actionHistory: [action.payload.item, ...state.actionHistory].slice(0, 20),
+      };
+    }
+    case "ADD_NOTEBOOK_ENTRY": {
+      return {
+        ...state,
+        notebookEntries: [action.payload.entry, ...state.notebookEntries],
       };
     }
     default:

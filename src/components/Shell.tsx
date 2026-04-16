@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
+import { ActionConverterFAB } from "./ActionConverterFAB";
 
 interface NavItem {
   to: string;
@@ -21,7 +22,7 @@ const navItems: NavItem[] = [
   { to: "/focus", label: "Focus", Icon: CheckCircle2 },
   { to: "/vault", label: "Vault", Icon: Shield },
   { to: "/learn", label: "Learn", Icon: BookOpen },
-  { to: "/review", label: "Review", Icon: BarChart3 },
+  { to: "/statistics", label: "Stats", Icon: BarChart3 },
 ];
 
 export const Shell = () => {
@@ -130,6 +131,8 @@ export const Shell = () => {
           ))}
         </ul>
       </nav>
+
+      <ActionConverterFAB />
     </div>
   );
 };

@@ -53,7 +53,13 @@ export const Review = () => {
 
       <header className="flex items-end justify-between">
         <h1 className="text-page-title text-[var(--text-1)]">Week 7 review</h1>
-        <p className="text-[13px] text-[var(--text-2)]">Mar 31 — Apr 6</p>
+        <button
+          type="button"
+          className="tap-scale rounded-[10px] border border-[var(--border)] bg-[var(--s1)] px-3 py-2 text-[12px] text-[var(--primary)]"
+          onClick={() => navigate("/statistics")}
+        >
+          Open statistics
+        </button>
       </header>
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -269,6 +275,13 @@ export const Review = () => {
           {submitting ? <Check size={16} strokeWidth={1.5} /> : null}
           Lock in next week →
         </button>
+      </section>
+
+      <section className="rounded-[14px] border border-[var(--border)] bg-[var(--s1)] p-4">
+        <p className="text-section text-[var(--text-1)]">Action conversion impact</p>
+        <p className="mt-2 text-[13px] text-[var(--text-2)]">
+          {state.actionHistory.length} actions converted this cycle. Most recent area: {state.actionHistory[0]?.areaId ?? "mind"}.
+        </p>
       </section>
     </div>
   );

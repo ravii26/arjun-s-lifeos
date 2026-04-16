@@ -2,12 +2,16 @@ import { FormEvent, useMemo, useState } from "react";
 import { Plus, Sparkles } from "lucide-react";
 import { HabitRow } from "../components/HabitRow";
 import { TaskCard } from "../components/TaskCard";
+import { BottomSheet } from "../components/BottomSheet";
+import { HabitDetailSheet } from "../components/HabitDetailSheet";
+import { TaskDetailSheet } from "../components/TaskDetailSheet";
 import { useAppContext } from "../context/AppContext";
-import { Task } from "../data/types";
+import { Habit, Task } from "../data/types";
 import { todayTaskIds } from "../data/seed";
 
-type FocusTab = "today" | "backlog";
+type FocusTab = "today" | "backlog" | "calendar";
 type Priority = Task["priority"];
+const activeDate = "2026-04-16";
 
 export const Focus = () => {
   const { state, dispatch } = useAppContext();
@@ -19,6 +23,13 @@ export const Focus = () => {
   const [estimateMin, setEstimateMin] = useState<string>("");
   const [newTaskIds, setNewTaskIds] = useState<string[]>([]);
   const [reasonOpen, setReasonOpen] = useState<Record<string, boolean>>({});
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [activeHabit, setActiveHabit] = useState<Habit | null>(null);
+  const [showBlockSheet, setShowBlockSheet] = useState(false);
+  const [blockTitle, setBlockTitle] = useState("");
+  const [blockArea, setBlockArea] = useState("career");
+  const [blockStart, setBlockStart] = useState("09");
+  const [blockDuration, setBlockDuration] = useState("1");
 
   const todayTasks = todayTaskIds
     .map((id) => state.tasks.find((task) => task.id === id))
@@ -34,6 +45,79 @@ export const Focus = () => {
       }))
       .filter((group) => group.tasks.length > 0);
   }, [state.areas, state.tasks]);
+
+  const todayBlocks = state.timeBlocks
+    .filter((block) => block.date === activeDate)
+    .sort((a, b) => a.startHour - b.startHour);
+
+  const scheduleTask = (taskId: string) => {
+    const targetTask = state.tasks.find((task) => task.id === taskId);
+    if (!targetTask) return;
+    const startHour = todayBlocks.length === 0 ? 9 : Math.min(todayBlocks[todayBlocks.length - 1].endHour + 1, 22);
+    dispatch({
+      type: "ADD_TIME_BLOCK",
+      payload: {
+        block: {
+          id: `tb-${Date.now()}`,
+          date: activeDate,
+          title: targetTask.title,
+          areaId: targetTask.areaId,
+          startHour,
+          endHour: Math.min(startHour + 1, 23),
+          linkedTaskId: targetTask.id,
+          status: "planned",
+        },
+      },
+    });
+  };
+
+  const scheduleHabit = (habitId: string) => {
+    const targetHabit = state.habits.find((habit) => habit.id === habitId);
+    if (!targetHabit) return;
+    const startHour = todayBlocks.length === 0 ? 7 : Math.min(todayBlocks[todayBlocks.length - 1].endHour + 1, 22);
+    dispatch({
+      type: "ADD_TIME_BLOCK",
+      payload: {
+        block: {
+          id: `tb-${Date.now()}`,
+          date: activeDate,
+          title: targetHabit.name,
+          areaId: targetHabit.areaId,
+          startHour,
+          endHour: Math.min(startHour + 1, 23),
+          linkedHabitId: targetHabit.id,
+          status: "planned",
+        },
+      },
+    });
+  };
+
+  const addManualBlock = (event: FormEvent) => {
+    event.preventDefault();
+    const title = blockTitle.trim();
+    if (!title) return;
+    const start = Number(blockStart);
+    const duration = Number(blockDuration);
+    const end = Math.min(start + Math.max(duration, 1), 23);
+
+    dispatch({
+      type: "ADD_TIME_BLOCK",
+      payload: {
+        block: {
+          id: `tb-${Date.now()}`,
+          date: activeDate,
+          title,
+          areaId: blockArea,
+          startHour: start,
+          endHour: end,
+          status: "planned",
+        },
+      },
+    });
+
+    setBlockTitle("");
+    setShowBlockSheet(false);
+  };
 
   const openSheet = (defaultArea?: string) => {
     if (defaultArea) {
@@ -68,7 +152,7 @@ export const Focus = () => {
   return (
     <div className="space-y-4">
       <div className="inline-flex rounded-full border border-[var(--border)] bg-[var(--s2)] p-1">
-        {(["today", "backlog"] as FocusTab[]).map((entry) => (
+        {(["today", "backlog", "calendar"] as FocusTab[]).map((entry) => (
           <button
             key={entry}
             type="button"
@@ -79,7 +163,7 @@ export const Focus = () => {
                 : "bg-transparent font-normal text-[var(--text-3)]"
             }`}
           >
-            {entry === "today" ? "Today" : "Backlog"}
+              {entry === "today" ? "Today" : entry === "backlog" ? "Backlog" : "Calendar"}
           </button>
         ))}
       </div>
@@ -97,12 +181,21 @@ export const Focus = () => {
               const area = state.areas.find((entry) => entry.id === task.areaId);
               if (!area) return null;
               return (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  area={area}
-                  onToggle={() => dispatch({ type: "TOGGLE_TASK", payload: { taskId: task.id } })}
-                />
+                <div key={task.id}>
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    area={area}
+                    onToggle={() => dispatch({ type: "TOGGLE_TASK", payload: { taskId: task.id } })}
+                  />
+                  <button
+                    type="button"
+                    className="mt-1 text-[11px] text-[var(--primary)]"
+                    onClick={() => setActiveTask(task)}
+                  >
+                    Details
+                  </button>
+                </div>
               );
             })}
             <div className="pt-1">
@@ -130,6 +223,9 @@ export const Focus = () => {
                     onLog={() => dispatch({ type: "LOG_HABIT", payload: { habitId: habit.id } })}
                     circleSize={12}
                   />
+                  <button type="button" className="mt-1 text-[11px] text-[var(--primary)]" onClick={() => setActiveHabit(habit)}>
+                    Details
+                  </button>
                   {hasMissed ? (
                     <div className="pt-1">
                       <button
@@ -200,7 +296,7 @@ export const Focus = () => {
             </p>
           </section>
         </div>
-      ) : (
+      ) : tab === "backlog" ? (
         <div className="space-y-4">
           <section className="rounded-[14px] border border-[var(--border)] bg-[var(--s2)] px-4 py-3" style={{ borderLeft: "2px solid var(--primary)" }}>
             <p className="inline-flex items-center gap-2 text-[13px] font-normal italic text-[var(--text-2)]">
@@ -239,6 +335,73 @@ export const Focus = () => {
                 </div>
               </div>
             ))}
+          </section>
+        </div>
+      ) : (
+        <div className="space-y-4 pb-20">
+          <section className="rounded-[14px] border border-[var(--border)] bg-[var(--s2)] p-4">
+            <p className="text-[14px] font-medium text-[var(--text-1)]">Weekly grid</p>
+            <div className="mt-3 grid grid-cols-7 gap-2 text-center text-[11px]">
+              {[
+                { day: "M", d: 14 },
+                { day: "T", d: 15 },
+                { day: "W", d: 16 },
+                { day: "T", d: 17 },
+                { day: "F", d: 18 },
+                { day: "S", d: 19 },
+                { day: "S", d: 20 },
+              ].map((cell) => (
+                <div
+                  key={`${cell.day}-${cell.d}`}
+                  className="rounded-[10px] border border-[var(--border)] px-2 py-3"
+                  style={{ background: cell.d === 16 ? "var(--primary-muted)" : "var(--s1)", color: cell.d === 16 ? "var(--primary)" : "var(--text-3)" }}
+                >
+                  <p>{cell.day}</p>
+                  <p className="mt-1 text-[12px]">{cell.d}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-section text-[var(--text-1)]">Time blocks</p>
+              <button
+                type="button"
+                className="tap-scale rounded-[10px] border border-[var(--border)] bg-[var(--s1)] px-3 py-2 text-[12px] text-[var(--primary)]"
+                onClick={() => setShowBlockSheet(true)}
+              >
+                Add block
+              </button>
+            </div>
+            {todayBlocks.length === 0 ? <p className="text-[12px] text-[var(--text-3)]">No blocks scheduled today.</p> : null}
+            {todayBlocks.map((block) => {
+              const area = state.areas.find((item) => item.id === block.areaId);
+              return (
+                <div
+                  key={block.id}
+                  className="rounded-[12px] border border-[var(--border)] bg-[var(--s1)] px-3 py-3"
+                  style={{ borderLeft: `3px solid ${area?.color ?? "var(--primary)"}` }}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[13px] font-medium text-[var(--text-1)]">{block.title}</p>
+                    <span className="text-[11px] text-[var(--text-3)]">{`${block.startHour}:00 - ${block.endHour}:00`}</span>
+                  </div>
+                  <div className="mt-2 flex gap-2">
+                    {(["planned", "done", "missed"] as const).map((status) => (
+                      <button
+                        key={status}
+                        type="button"
+                        className={`tap-scale rounded-full px-2 py-1 text-[11px] ${block.status === status ? "bg-[var(--primary-muted)] text-[var(--primary)]" : "bg-[var(--s2)] text-[var(--text-3)]"}`}
+                        onClick={() => dispatch({ type: "UPDATE_TIME_BLOCK_STATUS", payload: { blockId: block.id, status } })}
+                      >
+                        {status}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </section>
         </div>
       )}
@@ -333,6 +496,83 @@ export const Focus = () => {
           </div>
         </div>
       ) : null}
+
+      <TaskDetailSheet
+        open={Boolean(activeTask)}
+        task={activeTask}
+        onClose={() => setActiveTask(null)}
+        onToggle={(taskId) => {
+          dispatch({ type: "TOGGLE_TASK", payload: { taskId } });
+          setActiveTask((current) => (current ? { ...current, done: !current.done } : current));
+        }}
+        onSchedule={(taskId) => {
+          scheduleTask(taskId);
+          setActiveTask(null);
+          setTab("calendar");
+        }}
+      />
+
+      <HabitDetailSheet
+        open={Boolean(activeHabit)}
+        habit={activeHabit}
+        onClose={() => setActiveHabit(null)}
+        onLog={(habitId) => {
+          dispatch({ type: "LOG_HABIT", payload: { habitId } });
+          setActiveHabit(null);
+        }}
+        onSchedule={(habitId) => {
+          scheduleHabit(habitId);
+          setActiveHabit(null);
+          setTab("calendar");
+        }}
+      />
+
+      <BottomSheet open={showBlockSheet} onClose={() => setShowBlockSheet(false)}>
+        <form className="px-4 pb-6 pt-8" onSubmit={addManualBlock}>
+          <p className="text-[16px] font-medium text-[var(--text-1)]">Create time block</p>
+          <input
+            value={blockTitle}
+            onChange={(event) => setBlockTitle(event.target.value)}
+            placeholder="Block title"
+            className="mt-4 w-full rounded-[12px] border border-[var(--border)] bg-[var(--s1)] px-3 py-2 text-[14px] text-[var(--text-1)] outline-none"
+          />
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {state.areas.map((area) => (
+              <button
+                key={area.id}
+                type="button"
+                onClick={() => setBlockArea(area.id)}
+                className={`tap-scale rounded-[10px] border px-2 py-2 text-[11px] ${blockArea === area.id ? "border-[var(--primary)] bg-[var(--primary-muted)] text-[var(--primary)]" : "border-[var(--border)] bg-[var(--s2)] text-[var(--text-3)]"}`}
+              >
+                {area.name.split(" ")[0]}
+              </button>
+            ))}
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <input
+              value={blockStart}
+              onChange={(event) => setBlockStart(event.target.value)}
+              type="number"
+              min={0}
+              max={22}
+              className="rounded-[12px] border border-[var(--border)] bg-[var(--s1)] px-3 py-2 text-[13px] text-[var(--text-1)] outline-none"
+              placeholder="Start hour"
+            />
+            <input
+              value={blockDuration}
+              onChange={(event) => setBlockDuration(event.target.value)}
+              type="number"
+              min={1}
+              max={4}
+              className="rounded-[12px] border border-[var(--border)] bg-[var(--s1)] px-3 py-2 text-[13px] text-[var(--text-1)] outline-none"
+              placeholder="Duration"
+            />
+          </div>
+          <button type="submit" className="tap-scale mt-4 w-full rounded-[12px] bg-[var(--primary)] px-4 py-3 text-[13px] font-medium text-white">
+            Save block
+          </button>
+        </form>
+      </BottomSheet>
     </div>
   );
 };

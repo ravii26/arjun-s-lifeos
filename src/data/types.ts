@@ -38,6 +38,56 @@ export interface AppState {
   morningCheckIn: MorningCheckIn;
   eveningCheckIn: EveningCheckIn;
   weeklyReflection: WeeklyReflection;
+  topics: Topic[];
+  topicLinks: TopicLink[];
+  notebookEntries: NotebookEntry[];
+  timeBlocks: TimeBlock[];
+  actionHistory: ActionConversion[];
+}
+
+export interface Topic {
+  id: string;
+  title: string;
+  areaId: string;
+  summary: string;
+}
+
+export interface TopicLink {
+  id: string;
+  topicId: string;
+  label: string;
+  strength: number;
+}
+
+export interface NotebookEntry {
+  id: string;
+  areaId: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  topicIds: string[];
+  convertedNoteId?: string;
+}
+
+export interface TimeBlock {
+  id: string;
+  date: string;
+  title: string;
+  areaId: string;
+  startHour: number;
+  endHour: number;
+  linkedTaskId?: string;
+  linkedHabitId?: string;
+  status: "planned" | "done" | "missed";
+}
+
+export interface ActionConversion {
+  id: string;
+  input: string;
+  output: string;
+  areaId: string;
+  priority: Task["priority"];
+  createdAt: string;
 }
 
 export interface MorningCheckIn {

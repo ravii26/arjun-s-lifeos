@@ -2,6 +2,7 @@ import { ArrowLeft, Sparkles } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { HabitRow } from "../components/HabitRow";
+import { NoteDetailSheet } from "../components/NoteDetailSheet";
 import { TaskCard } from "../components/TaskCard";
 import { useAppContext } from "../context/AppContext";
 import { Note } from "../data/types";
@@ -98,12 +99,16 @@ export const AreaDetails = () => {
   const [phase, setPhase] = useState<(typeof phases)[number]>("Building");
   const [editingGoal, setEditingGoal] = useState(false);
   const [showNoteSheet, setShowNoteSheet] = useState(false);
+  const [activeNote, setActiveNote] = useState<Note | null>(null);
 
   const area = state.areas.find((item) => item.id === id);
 
   const areaHabits = state.habits.filter((habit) => habit.areaId === id);
   const areaTasks = state.tasks.filter((task) => task.areaId === id);
   const areaNotes = state.learnNotes.filter((note) => note.areaId === id);
+  const areaTopics = state.topics.filter((topic) => topic.areaId === id);
+  const areaActionHistory = state.actionHistory.filter((entry) => entry.areaId === id);
+  const areaBlocks = state.timeBlocks.filter((block) => block.areaId === id);
 
   const scoreColor = area
     ? area.score >= 65
@@ -305,8 +310,52 @@ export const AreaDetails = () => {
           </div>
         </div>
         {areaNotes.map((note) => (
-          <NoteCard key={note.id} note={note} />
+          <button key={note.id} type="button" className="w-full text-left" onClick={() => setActiveNote(note)}>
+            <NoteCard note={note} />
+          </button>
         ))}
+        {areaTopics.length > 0 ? (
+          <div className="pt-1">
+            <p className="text-[12px] text-[var(--text-3)]">Connected topics</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {areaTopics.map((topic) => (
+                <button
+                  key={topic.id}
+                  type="button"
+                  className="tap-scale rounded-full bg-[var(--primary-muted)] px-3 py-1 text-[11px] text-[var(--primary)]"
+                  onClick={() => navigate(`/topics/${topic.id}`)}
+                >
+                  {topic.title}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </section>
+
+      <section className="space-y-2">
+        <p className="text-section text-[var(--text-1)]">Area statistics</p>
+        <div className="grid grid-cols-3 gap-2">
+          <article className="rounded-[12px] border border-[var(--border)] bg-[var(--s1)] px-3 py-3">
+            <p className="text-[18px] font-medium text-[var(--teal)]">{areaTasks.filter((task) => task.done).length}</p>
+            <p className="text-[11px] text-[var(--text-3)]">Tasks done</p>
+          </article>
+          <article className="rounded-[12px] border border-[var(--border)] bg-[var(--s1)] px-3 py-3">
+            <p className="text-[18px] font-medium text-[var(--primary)]">{areaBlocks.length}</p>
+            <p className="text-[11px] text-[var(--text-3)]">Time blocks</p>
+          </article>
+          <article className="rounded-[12px] border border-[var(--border)] bg-[var(--s1)] px-3 py-3">
+            <p className="text-[18px] font-medium text-[var(--amber)]">{areaActionHistory.length}</p>
+            <p className="text-[11px] text-[var(--text-3)]">Action conversions</p>
+          </article>
+        </div>
+
+        {areaActionHistory.length > 0 ? (
+          <div className="rounded-[14px] border border-[var(--border)] bg-[var(--s1)] p-3">
+            <p className="text-[12px] text-[var(--text-3)]">Latest converted action</p>
+            <p className="mt-1 text-[13px] text-[var(--text-2)]">{areaActionHistory[0].output}</p>
+          </div>
+        ) : null}
       </section>
 
       <section className="rounded-[14px] border border-[var(--border)] bg-[var(--s2)] p-4" style={{ borderLeft: "3px solid var(--primary)" }}>
@@ -327,6 +376,18 @@ export const AreaDetails = () => {
           }}
         />
       ) : null}
+
+      <NoteDetailSheet
+        open={Boolean(activeNote)}
+        note={activeNote}
+        topics={areaTopics}
+        onClose={() => setActiveNote(null)}
+        onAddToTopic={(topicId) => {
+          if (!activeNote) return;
+          dispatch({ type: "ADD_TOPIC_NOTE_LINK", payload: { topicId, noteId: activeNote.id } });
+          setActiveNote(null);
+        }}
+      />
     </section>
   );
 };

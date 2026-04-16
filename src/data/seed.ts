@@ -1,12 +1,17 @@
 import {
+  ActionConversion,
   Course,
   EveningCheckIn,
   Habit,
   LifeArea,
   MorningCheckIn,
   Note,
+  NotebookEntry,
   Resource,
   Task,
+  TimeBlock,
+  Topic,
+  TopicLink,
   VaultItem,
   WeeklyReflection,
 } from "./types";
@@ -172,3 +177,86 @@ export const weeklyReflection: WeeklyReflection = {
   nextAreaFocus: "relationships",
   commitment: "",
 };
+
+export const topics: Topic[] = [
+  {
+    id: "tp1",
+    title: "Node routing patterns",
+    areaId: "career",
+    summary: "Keep handlers thin, isolate validation, and compose middleware by concern.",
+  },
+  {
+    id: "tp2",
+    title: "Finance weekly reset",
+    areaId: "finance",
+    summary: "A short weekly check avoids money drift and keeps spending intentional.",
+  },
+  {
+    id: "tp3",
+    title: "Recovery rituals",
+    areaId: "mind",
+    summary: "Small transitions after low-energy days protect the next morning.",
+  },
+];
+
+export const topicLinks: TopicLink[] = [
+  { id: "tl1", topicId: "tp1", label: "Express middleware", strength: 82 },
+  { id: "tl2", topicId: "tp1", label: "Request validation", strength: 67 },
+  { id: "tl3", topicId: "tp1", label: "Error boundaries", strength: 52 },
+  { id: "tl4", topicId: "tp2", label: "Subscription audit", strength: 74 },
+  { id: "tl5", topicId: "tp2", label: "Automated transfers", strength: 69 },
+  { id: "tl6", topicId: "tp3", label: "Evening shutdown", strength: 77 },
+];
+
+export const notebookEntries: NotebookEntry[] = [
+  {
+    id: "nb1",
+    areaId: "career",
+    title: "Route validation checklist",
+    body: "Every route should validate input before touching domain logic. Add lightweight schemas and return clear error codes.",
+    createdAt: "Apr 15",
+    topicIds: ["tp1"],
+  },
+  {
+    id: "nb2",
+    areaId: "mind",
+    title: "Low-energy recovery",
+    body: "When rating <=2, do 15-minute walk, desk reset, and one 20-minute focused block before sleep.",
+    createdAt: "Apr 14",
+    topicIds: ["tp3"],
+  },
+];
+
+export const timeBlocks: TimeBlock[] = [
+  {
+    id: "tb1",
+    date: "2026-04-16",
+    title: "LifeOS build sprint",
+    areaId: "career",
+    startHour: 9,
+    endHour: 11,
+    linkedTaskId: "t1",
+    status: "planned",
+  },
+  {
+    id: "tb2",
+    date: "2026-04-16",
+    title: "Workout",
+    areaId: "health",
+    startHour: 18,
+    endHour: 19,
+    linkedHabitId: "h1",
+    status: "planned",
+  },
+];
+
+export const actionHistory: ActionConversion[] = [
+  {
+    id: "ac1",
+    input: "I should probably revise linked lists this week",
+    output: "Solve 2 linked-list medium problems and write one recap note by Friday",
+    areaId: "career",
+    priority: "P2",
+    createdAt: "Apr 15",
+  },
+];

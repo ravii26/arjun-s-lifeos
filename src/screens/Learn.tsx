@@ -12,8 +12,9 @@ import {
   Plus,
   Search,
   Sparkles,
+  Link2,
 } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
 import { Course, Note, Resource, Task } from "../data/types";
 
@@ -194,6 +195,27 @@ const LessonSheet = ({ onClose, noteTaskTitle }: { onClose: () => void; noteTask
         </div>
 
         <div className="border-t border-[var(--border)] px-4 py-4">
+          <button
+            type="button"
+            className="tap-scale mb-3 w-full rounded-[10px] border border-[var(--border)] bg-[var(--s1)] px-3 py-2 text-[12px] text-[var(--text-2)]"
+            onClick={() => {
+              dispatch({
+                type: "ADD_NOTEBOOK_ENTRY",
+                payload: {
+                  entry: {
+                    id: `nb-${Date.now()}`,
+                    areaId: "career",
+                    title: "Lesson capture: Building your first route",
+                    body: lessonBody.join(" "),
+                    createdAt: "Just now",
+                    topicIds: ["tp1"],
+                  },
+                },
+              });
+            }}
+          >
+            Save lesson to notebook
+          </button>
           <div className="flex items-center justify-between gap-3">
             <button type="button" className="tap-scale rounded-[12px] border border-[var(--border)] bg-[var(--s1)] px-4 py-3 text-[13px] text-[var(--text-3)]">
               Previous
@@ -532,6 +554,7 @@ const ResourcePanel = ({
 
 export const Learn = () => {
   const { state, dispatch } = useAppContext();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<LearnTab>("courses");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -860,9 +883,64 @@ export const Learn = () => {
 
           <div className="space-y-3">
             {filteredNotes.map((note) => (
-              <NoteCard key={note.id} note={note} onClick={() => setNoteOpen(note)} />
+              <div key={note.id} className="space-y-2">
+                <NoteCard note={note} onClick={() => setNoteOpen(note)} />
+                <div className="flex flex-wrap items-center gap-2 px-1">
+                  {state.topics
+                    .filter((topic) => topic.areaId === note.areaId)
+                    .slice(0, 2)
+                    .map((topic) => (
+                      <button
+                        key={topic.id}
+                        type="button"
+                        className="tap-scale inline-flex items-center gap-1 rounded-full bg-[var(--s2)] px-2 py-1 text-[11px] text-[var(--text-3)]"
+                        onClick={() => navigate(`/topics/${topic.id}`)}
+                      >
+                        <Link2 size={12} strokeWidth={1.5} />
+                        {topic.title}
+                      </button>
+                    ))}
+                </div>
+              </div>
             ))}
           </div>
+
+          <section className="rounded-[14px] border border-[var(--border)] bg-[var(--s1)] p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-[14px] font-medium text-[var(--text-1)]">Notebook</p>
+              <span className="text-[12px] text-[var(--text-3)]">{state.notebookEntries.length} entries</span>
+            </div>
+            <div className="mt-3 space-y-2">
+              {state.notebookEntries.slice(0, 3).map((entry) => (
+                <div key={entry.id} className="rounded-[10px] border border-[var(--border)] bg-[var(--s2)] px-3 py-2">
+                  <p className="text-[13px] font-medium text-[var(--text-1)]">{entry.title}</p>
+                  <div className="mt-2 flex items-center gap-2">
+                    {entry.topicIds.slice(0, 1).map((topicId) => (
+                      <button
+                        key={topicId}
+                        type="button"
+                        className="tap-scale rounded-full bg-[var(--primary-muted)] px-2 py-1 text-[11px] text-[var(--primary)]"
+                        onClick={() => navigate(`/topics/${topicId}`)}
+                      >
+                        Open topic
+                      </button>
+                    ))}
+                    {!entry.convertedNoteId ? (
+                      <button
+                        type="button"
+                        className="tap-scale rounded-full bg-[var(--s3)] px-2 py-1 text-[11px] text-[var(--text-2)]"
+                        onClick={() => dispatch({ type: "CONVERT_NOTEBOOK_TO_NOTE", payload: { entryId: entry.id } })}
+                      >
+                        Convert to note
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-[var(--teal)]">Converted</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
 
           <button
             type="button"
