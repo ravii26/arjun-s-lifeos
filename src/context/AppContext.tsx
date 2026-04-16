@@ -1,272 +1,455 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import * as React from 'react';
+import type { AppState, Habit, HabitLog, Note, Project, Resource, Task, Topic, VaultItem } from '@/types';
+import { createSeedState } from '@/data/seed';
+import { getTodayHabitStatusFromHabit, getTodayLog, isoDate } from '@/lib/lifeos';
+import { AppContext, type AppContextValue } from '@/context/appState';
 
-export type LifeArea = 'Career & Skills' | 'Health & Body' | 'Mind & Learning' | 'Finance' | 'Relationships' | 'Creative';
+const STORAGE_KEY = 'lifeos-theme';
 
-export interface Task {
-  id: string;
-  title: string;
-  priority: 'P1' | 'P2' | 'P3';
-  area: LifeArea;
-  completed: boolean;
-  timeEstimate?: number;
-  isToday: boolean;
+type AppAction =
+  | { type: 'TOGGLE_THEME' }
+  | { type: 'ADD_TASK'; task: Task }
+  | { type: 'UPDATE_TASK'; taskId: string; updates: Partial<Task> }
+  | { type: 'DELETE_TASK'; taskId: string }
+  | { type: 'TOGGLE_TASK_STATUS'; taskId: string }
+  | { type: 'SCHEDULE_TASK_FOR_TODAY'; taskId: string }
+  | { type: 'ADD_TASK_SUBTASK'; taskId: string; title: string }
+  | { type: 'TOGGLE_TASK_SUBTASK'; taskId: string; subtaskId: string }
+  | { type: 'DELETE_TASK_SUBTASK'; taskId: string; subtaskId: string }
+  | { type: 'ADD_PROJECT'; project: Project }
+  | { type: 'UPDATE_PROJECT'; projectId: string; updates: Partial<Project> }
+  | { type: 'SET_PROJECT_STATUS'; projectId: string; status: Project['status'] }
+  | { type: 'REORDER_PROJECT_TASK'; projectId: string; taskId: string; direction: 'up' | 'down' }
+  | { type: 'ADD_HABIT'; habit: Habit }
+  | { type: 'UPDATE_HABIT'; habitId: string; updates: Partial<Habit> }
+  | { type: 'DELETE_HABIT'; habitId: string }
+  | { type: 'LOG_HABIT'; habitId: string; log: HabitLog; date?: string }
+  | { type: 'ADD_NOTE'; note: Note }
+  | { type: 'UPDATE_NOTE'; noteId: string; updates: Partial<Note> }
+  | { type: 'DELETE_NOTE'; noteId: string }
+  | { type: 'ADD_TOPIC'; topic: Topic }
+  | { type: 'ADD_COURSE'; course: AppState['courses'][number] }
+  | { type: 'UPDATE_COURSE'; courseId: string; updates: Partial<AppState['courses'][number]> }
+  | { type: 'SET_ACTIVE_COURSE'; courseId: string }
+  | { type: 'TOGGLE_COURSE_LESSON'; courseId: string; moduleId: string; lessonId: string }
+  | { type: 'ADD_VAULT_ITEM'; item: VaultItem }
+  | { type: 'ADD_RESOURCE'; resource: Resource }
+  | { type: 'DECIDE_RESOURCE'; resourceId: string; status: Resource['status']; decision?: Resource['decision'] }
+  | { type: 'SET_DAY_RATING'; rating: number | null }
+  | { type: 'SET_MORNING_CHECKIN'; checkin: AppState['morningCheckIn'] }
+  | { type: 'DISMISS_MORNING' }
+  | { type: 'SET_EVENING_CHECKIN'; checkin: AppState['eveningCheckIn'] }
+  | { type: 'DISMISS_EVENING' }
+  | { type: 'SAVE_REFLECTION'; reflection: AppState['weeklyReflection'] };
+
+function readInitialTheme(): 'dark' | 'light' {
+  if (typeof window === 'undefined') {
+    return 'dark' as const;
+  }
+
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  if (stored === 'light' || stored === 'dark') {
+    return stored;
+  }
+
+  return 'dark' as const;
 }
 
-export type HabitDay = 'done' | 'missed' | 'pending';
-
-export interface Habit {
-  id: string;
-  name: string;
-  area: LifeArea;
-  streak: number;
-  last7: HabitDay[];
-  loggedToday: boolean;
-  missReason?: string;
+function sortLogs(logs: HabitLog[]) {
+  return [...logs].sort((left, right) => left.date.localeCompare(right.date));
 }
 
-export interface AreaScore {
-  area: LifeArea;
-  score: number;
-  change: number;
-  color: string;
-  keyStat: string;
+function isCompletedHabitLog(habit: Habit, log: HabitLog) {
+  if (habit.trackingType === 'boolean') {
+    return !!log.done;
+  }
+
+  if (habit.trackingType === 'amount') {
+    return (log.value ?? 0) >= (habit.amountGoal ?? 0);
+  }
+
+  if (habit.trackingType === 'timer') {
+    return (log.seconds ?? 0) >= (habit.timerGoalSeconds ?? 0);
+  }
+
+  return (log.currentValue ?? 0) >= (habit.progressGoal ?? 0);
 }
 
-export type VaultItemType = 'Quote' | 'Video' | 'Voice Note' | 'Image' | 'Note' | 'Win';
+function updateHabitStreak(habit: Habit, nextLogs: HabitLog[], dateString: string) {
+  const existingToday = nextLogs.find((log) => log.date === dateString);
+  if (!existingToday) {
+    return habit;
+  }
 
-export interface VaultItem {
-  id: string;
-  type: VaultItemType;
-  tag: string;
-  tagColor: string;
-  content: string;
-  daysAgo: number;
+  const completedNow = isCompletedHabitLog(habit, existingToday);
+  const previousToday = getTodayLog(habit);
+  const previousComplete = previousToday ? isCompletedHabitLog(habit, previousToday) : false;
+
+  if (completedNow && !previousComplete && dateString === isoDate(new Date())) {
+    const nextStreak = habit.streak + 1;
+    return {
+      ...habit,
+      logs: sortLogs(nextLogs),
+      streak: nextStreak,
+      bestStreak: Math.max(habit.bestStreak, nextStreak),
+    };
+  }
+
+  return {
+    ...habit,
+    logs: sortLogs(nextLogs),
+  };
 }
 
-export type NoteType = 'Topic notes' | 'Book summary' | 'Course notes' | 'Mental model' | 'Reference';
+function syncTaskSubtaskStatus(task: Task): Task {
+  if (!task.subtasks?.length) {
+    return task;
+  }
 
-export interface LearnNote {
-  id: string;
-  title: string;
-  type: NoteType;
-  area: LifeArea;
-  keyPoints: string[];
-  source?: string;
-  daysAgo: number;
-  tasksCreated: number;
-  body?: string;
+  const allDone = task.subtasks.every((subtask) => subtask.done);
+  return {
+    ...task,
+    status: allDone ? 'done' : task.status === 'done' ? 'todo' : task.status,
+  };
 }
 
-export interface PendingResource {
-  id: string;
-  title: string;
-  area: LifeArea;
-  daysAgo: number;
-  decided: boolean;
+function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
+  const next = [...items];
+  const [item] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, item);
+  return next;
 }
 
-export interface PastAction {
-  id: string;
-  title: string;
-  area: LifeArea;
-  action: string;
-  detail?: string;
-  daysAgo: number;
-}
-
-interface AppState {
-  theme: 'dark' | 'light';
-  toggleTheme: () => void;
-  tasks: Task[];
-  toggleTask: (id: string) => void;
-  addTask: (task: Omit<Task, 'id'>) => void;
-  deleteTask: (id: string) => void;
-  updateTask: (id: string, updates: Partial<Task>) => void;
-  habits: Habit[];
-  logHabit: (id: string) => void;
-  setHabitMissReason: (id: string, reason: string) => void;
-  dayRating: number | null;
-  setDayRating: (r: number) => void;
-  areaScores: AreaScore[];
-  weeklyScore: number;
-  userName: string;
-  day: number;
-  vaultItems: VaultItem[];
-  addVaultItem: (item: Omit<VaultItem, 'id'>) => void;
-  notes: LearnNote[];
-  addNote: (note: Omit<LearnNote, 'id'>) => void;
-  updateNoteTaskCount: (id: string) => void;
-  pendingResources: PendingResource[];
-  decidePendingResource: (id: string) => void;
-  pastActions: PastAction[];
-  pendingResourceCount: number;
-}
-
-const AppContext = createContext<AppState | null>(null);
-
-export const useApp = () => {
-  const ctx = useContext(AppContext);
-  if (!ctx) throw new Error('useApp must be inside AppProvider');
-  return ctx;
-};
-
-const AREA_COLORS: Record<LifeArea, string> = {
-  'Career & Skills': 'var(--area-career)',
-  'Health & Body': 'var(--area-health)',
-  'Mind & Learning': 'var(--area-mind)',
-  'Finance': 'var(--area-finance)',
-  'Relationships': 'var(--area-relationships)',
-  'Creative': 'var(--area-creative)',
-};
-
-const TAG_COLORS: Record<string, string> = {
-  'Remember why I started': 'var(--primary)',
-  'When I want to quit': 'var(--amber)',
-  'When I feel lost': 'var(--area-mind)',
-  'When I failed': 'var(--text-muted)',
-  'When I feel weak': 'var(--area-relationships)',
-  'When I win': 'var(--teal)',
-};
-
-const TAG_BG_COLORS: Record<string, string> = {
-  'Remember why I started': 'var(--primary-muted-bg)',
-  'When I want to quit': 'var(--amber-muted-bg)',
-  'When I feel lost': 'rgba(74,144,217,0.12)',
-  'When I failed': 'var(--surface-3)',
-  'When I feel weak': 'rgba(224,96,126,0.12)',
-  'When I win': 'var(--teal-muted-bg)',
-};
-
-const initialTasks: Task[] = [
-  { id: 't1', title: 'Solve 3 LeetCode problems', priority: 'P1', area: 'Career & Skills', completed: false, timeEstimate: 45, isToday: true },
-  { id: 't2', title: 'Push LifeOS dashboard to GitHub', priority: 'P1', area: 'Career & Skills', completed: true, isToday: true },
-  { id: 't3', title: 'Record morning journal voice note', priority: 'P2', area: 'Mind & Learning', completed: false, timeEstimate: 15, isToday: true },
-];
-
-const initialHabits: Habit[] = [
-  { id: 'h1', name: '5:30am workout', area: 'Health & Body', streak: 14, last7: ['done','done','missed','done','done','done','pending'], loggedToday: false },
-  { id: 'h2', name: 'LifeOS build daily', area: 'Career & Skills', streak: 23, last7: ['done','done','done','done','done','done','pending'], loggedToday: false },
-  { id: 'h3', name: 'Sleep by 11pm', area: 'Mind & Learning', streak: 8, last7: ['done','missed','done','done','done','done','pending'], loggedToday: false },
-];
-
-const initialAreas: AreaScore[] = [
-  { area: 'Career & Skills', score: 71, change: 8, color: AREA_COLORS['Career & Skills'], keyStat: 'LeetCode 12/15 this week' },
-  { area: 'Health & Body', score: 58, change: 0, color: AREA_COLORS['Health & Body'], keyStat: 'Workout 5/7 days' },
-  { area: 'Mind & Learning', score: 64, change: 3, color: AREA_COLORS['Mind & Learning'], keyStat: 'Read 4 chapters' },
-  { area: 'Finance', score: 45, change: -4, color: AREA_COLORS['Finance'], keyStat: 'No budget review yet' },
-  { area: 'Relationships', score: 38, change: -6, color: AREA_COLORS['Relationships'], keyStat: 'No social plans this week' },
-  { area: 'Creative', score: 22, change: -8, color: AREA_COLORS['Creative'], keyStat: 'No creative work in 14 days' },
-];
-
-const initialVaultItems: VaultItem[] = [
-  { id: 'v1', type: 'Quote', tag: 'Remember why I started', tagColor: TAG_COLORS['Remember why I started'], content: 'You started this because you were tired of being average. Don\'t forget that feeling.', daysAgo: 12 },
-  { id: 'v2', type: 'Video', tag: 'When I want to quit', tagColor: TAG_COLORS['When I want to quit'], content: 'David Goggins — Stay Hard motivation clip — saved this after missing 4 workouts', daysAgo: 23 },
-  { id: 'v3', type: 'Note', tag: 'When I feel lost', tagColor: TAG_COLORS['When I feel lost'], content: 'The plan: Career to 60-80k in 9 months. DSA + projects + LifeOS. One step at a time.', daysAgo: 31 },
-  { id: 'v4', type: 'Win', tag: 'When I win', tagColor: TAG_COLORS['When I win'], content: 'Solved my first Hard LeetCode problem. Took 3 hours but I got it.', daysAgo: 8 },
-  { id: 'v5', type: 'Quote', tag: 'When I feel weak', tagColor: TAG_COLORS['When I feel weak'], content: 'Discipline is choosing between what you want now and what you want most.', daysAgo: 19 },
-  { id: 'v6', type: 'Note', tag: 'When I failed', tagColor: TAG_COLORS['When I failed'], content: 'Failed the mock interview. Froze on a graph problem I knew. Use this feeling.', daysAgo: 44 },
-  { id: 'v7', type: 'Win', tag: 'Remember why I started', tagColor: TAG_COLORS['Remember why I started'], content: 'Day 1 — wrote down: I want to be someone I\'m proud of by 23. Still the goal.', daysAgo: 47 },
-];
-
-const initialNotes: LearnNote[] = [
-  { id: 'n1', title: 'Redis — core concepts', type: 'Topic notes', area: 'Career & Skills', keyPoints: ['In-memory key-value store', 'Supports pub/sub messaging pattern', 'Used for caching and session storage', 'Data persists with RDB/AOF options', 'Single-threaded, very fast'], source: 'redis.io', daysAgo: 3, tasksCreated: 2, body: '# Redis — Core Concepts\n\nRedis is an open-source, in-memory data structure store used as a database, cache, message broker, and streaming engine.\n\n## Key Features\n\n- **In-memory storage**: All data is stored in RAM for ultra-fast access\n- **Data structures**: Supports strings, hashes, lists, sets, sorted sets\n- **Persistence**: Optional durability via RDB snapshots and AOF logs\n\n## Pub/Sub Pattern\n\nRedis supports publish/subscribe messaging:\n\n```\nSUBSCRIBE channel1\nPUBLISH channel1 "hello"\n```\n\n## Use Cases\n\n- Session caching\n- Real-time leaderboards\n- Rate limiting\n- Message queues' },
-  { id: 'n2', title: 'Atomic Habits — key takeaways', type: 'Book summary', area: 'Mind & Learning', keyPoints: ['Identity-based habits over outcome-based goals', 'Make it obvious, attractive, easy, satisfying', 'Small 1% improvements compound'], source: 'Book by James Clear', daysAgo: 9, tasksCreated: 0 },
-  { id: 'n3', title: 'DSA patterns — sliding window', type: 'Topic notes', area: 'Career & Skills', keyPoints: ['Use when asked for max/min subarray of size k', 'Two pointer variant for variable windows', 'O(n) time complexity'], daysAgo: 14, tasksCreated: 0 },
-  { id: 'n4', title: 'Compound interest mental model', type: 'Mental model', area: 'Finance', keyPoints: ['Small consistent gains compound dramatically over 10+ years', 'Rule of 72: divide 72 by rate to get doubling time'], daysAgo: 21, tasksCreated: 0 },
-];
-
-const initialPendingResources: PendingResource[] = [
-  { id: 'pr1', title: 'Clean Code — Chapter 4 notes', area: 'Career & Skills', daysAgo: 2, decided: false },
-  { id: 'pr2', title: 'Meditation for focus — YouTube', area: 'Mind & Learning', daysAgo: 1, decided: false },
-  { id: 'pr3', title: 'SIP calculator article', area: 'Finance', daysAgo: 3, decided: false },
-];
-
-const initialPastActions: PastAction[] = [
-  { id: 'pa1', title: 'Atomic Habits video', area: 'Mind & Learning', action: 'Executed as habit', detail: 'Read 10 pages daily', daysAgo: 9 },
-  { id: 'pa2', title: 'System design article', area: 'Career & Skills', action: 'Added to notes', daysAgo: 14 },
-  { id: 'pa3', title: 'Motivational clip', area: 'Mind & Learning', action: 'Saved to Vault', daysAgo: 19 },
-];
-
-export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    const saved = localStorage.getItem('lifeos-theme');
-    return (saved === 'light' || saved === 'dark') ? saved : 'dark';
+function updateAreaScore(areas: AppState['areas'], areaId: Task['areaId'], delta: number) {
+  return areas.map((area) => {
+    if (area.id !== areaId) return area;
+    const score = Math.max(0, Math.min(100, Math.round((area.score + delta) * 10) / 10));
+    return {
+      ...area,
+      score,
+      scoreDelta: Math.round((score - area.score) * 10) / 10,
+    };
   });
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [habits, setHabits] = useState<Habit[]>(initialHabits);
-  const [dayRating, setDayRating] = useState<number | null>(null);
-  const [vaultItems, setVaultItems] = useState<VaultItem[]>(initialVaultItems);
-  const [notes, setNotes] = useState<LearnNote[]>(initialNotes);
-  const [pendingResources, setPendingResources] = useState<PendingResource[]>(initialPendingResources);
+}
 
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('lifeos-theme', theme);
-  }, [theme]);
+function syncProjectStatusFromTasks(projects: AppState['projects'], tasks: AppState['tasks']): AppState['projects'] {
+  return projects.map((project) => {
+    const relatedTasks = project.tasks
+      .map((taskId) => tasks.find((task) => task.id === taskId))
+      .filter(Boolean) as Task[];
 
-  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
-  const toggleTask = (id: string) => setTasks(ts => ts.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+    if (!relatedTasks.length) {
+      return project.status === 'done' ? { ...project, status: 'active' as const } : project;
+    }
 
-  const addTask = (task: Omit<Task, 'id'>) => {
-    setTasks(ts => [...ts, { ...task, id: `t${Date.now()}` }]);
+    const allDone = relatedTasks.every((task) => task.status === 'done');
+    if (allDone && project.status !== 'done') {
+      return { ...project, status: 'done' as const };
+    }
+
+    if (!allDone && project.status === 'done') {
+      return { ...project, status: 'active' as const };
+    }
+
+    return project;
+  });
+}
+
+function reducer(state: AppState, action: AppAction): AppState {
+  switch (action.type) {
+    case 'TOGGLE_THEME': {
+      const theme = state.theme === 'dark' ? 'light' : 'dark';
+      window.localStorage.setItem(STORAGE_KEY, theme);
+      return { ...state, theme };
+    }
+    case 'ADD_TASK':
+      return { ...state, tasks: [action.task, ...state.tasks] };
+    case 'UPDATE_TASK':
+      {
+      const nextTasks = state.tasks.map((task) => (task.id === action.taskId ? { ...task, ...action.updates } : task));
+      return {
+        ...state,
+        tasks: nextTasks,
+        projects: syncProjectStatusFromTasks(state.projects, nextTasks),
+      };
+      }
+    case 'DELETE_TASK':
+      {
+      const nextTasks = state.tasks.filter((task) => task.id !== action.taskId);
+      const nextProjects = syncProjectStatusFromTasks(
+        state.projects.map((project) => ({ ...project, tasks: project.tasks.filter((taskId) => taskId !== action.taskId) })),
+        nextTasks,
+      );
+      return { ...state, tasks: nextTasks, projects: nextProjects };
+      }
+    case 'TOGGLE_TASK_STATUS':
+      {
+      const nextTasks = state.tasks.map((task) => {
+        if (task.id !== action.taskId) return task;
+        const status: Task['status'] = task.status === 'done' ? 'todo' : 'done';
+        return { ...task, status };
+      });
+      return {
+        ...state,
+        tasks: nextTasks,
+        projects: syncProjectStatusFromTasks(state.projects, nextTasks),
+      };
+      }
+    case 'SCHEDULE_TASK_FOR_TODAY': {
+      const today = isoDate(new Date());
+      return {
+        ...state,
+        tasks: state.tasks.map((task) => (
+          task.id === action.taskId
+            ? { ...task, dueDate: today, status: task.status === 'done' ? 'todo' : task.status }
+            : task
+        )),
+      };
+    }
+    case 'ADD_TASK_SUBTASK': {
+      const nextTasks = state.tasks.map((task) => {
+        if (task.id !== action.taskId) {
+          return task;
+        }
+
+        const nextSubtasks = [
+          ...(task.subtasks ?? []),
+          { id: `${task.id}-sub-${Date.now()}`, title: action.title, done: false },
+        ];
+        return syncTaskSubtaskStatus({ ...task, subtasks: nextSubtasks });
+      });
+      return {
+        ...state,
+        tasks: nextTasks,
+        projects: syncProjectStatusFromTasks(state.projects, nextTasks),
+      };
+    }
+    case 'TOGGLE_TASK_SUBTASK': {
+      const nextTasks = state.tasks.map((task) => {
+        if (task.id !== action.taskId || !task.subtasks?.length) {
+          return task;
+        }
+
+        const nextSubtasks = task.subtasks.map((subtask) => (
+          subtask.id === action.subtaskId ? { ...subtask, done: !subtask.done } : subtask
+        ));
+        return syncTaskSubtaskStatus({ ...task, subtasks: nextSubtasks });
+      });
+      return {
+        ...state,
+        tasks: nextTasks,
+        projects: syncProjectStatusFromTasks(state.projects, nextTasks),
+      };
+    }
+    case 'DELETE_TASK_SUBTASK': {
+      const nextTasks = state.tasks.map((task) => {
+        if (task.id !== action.taskId || !task.subtasks?.length) {
+          return task;
+        }
+
+        const nextSubtasks = task.subtasks.filter((subtask) => subtask.id !== action.subtaskId);
+        return syncTaskSubtaskStatus({ ...task, subtasks: nextSubtasks });
+      });
+      return {
+        ...state,
+        tasks: nextTasks,
+        projects: syncProjectStatusFromTasks(state.projects, nextTasks),
+      };
+    }
+    case 'ADD_PROJECT':
+      return { ...state, projects: [action.project, ...state.projects] };
+    case 'UPDATE_PROJECT':
+      return {
+        ...state,
+        projects: state.projects.map((project) =>
+          project.id === action.projectId ? { ...project, ...action.updates } : project,
+        ),
+      };
+    case 'SET_PROJECT_STATUS':
+      return {
+        ...state,
+        projects: state.projects.map((project) => (
+          project.id === action.projectId ? { ...project, status: action.status } : project
+        )),
+      };
+    case 'REORDER_PROJECT_TASK': {
+      return {
+        ...state,
+        projects: state.projects.map((project) => {
+          if (project.id !== action.projectId) {
+            return project;
+          }
+
+          const currentIndex = project.tasks.indexOf(action.taskId);
+          if (currentIndex < 0) {
+            return project;
+          }
+
+          const targetIndex = action.direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+          if (targetIndex < 0 || targetIndex >= project.tasks.length) {
+            return project;
+          }
+
+          return { ...project, tasks: moveItem(project.tasks, currentIndex, targetIndex) };
+        }),
+      };
+    }
+    case 'ADD_HABIT':
+      return { ...state, habits: [action.habit, ...state.habits] };
+    case 'UPDATE_HABIT':
+      return {
+        ...state,
+        habits: state.habits.map((habit) => (habit.id === action.habitId ? { ...habit, ...action.updates } : habit)),
+      };
+    case 'DELETE_HABIT':
+      return { ...state, habits: state.habits.filter((habit) => habit.id !== action.habitId) };
+    case 'LOG_HABIT': {
+      const dateString = action.date ?? isoDate(new Date());
+      let scoreAreaId: Habit['areaId'] | null = null;
+      let scoreDelta = 0;
+
+      const nextHabits = state.habits.map((habit) => {
+        if (habit.id !== action.habitId) {
+          return habit;
+        }
+
+        const previousLog = habit.logs.find((log) => log.date === dateString);
+        const wasComplete = previousLog ? isCompletedHabitLog(habit, previousLog) : false;
+
+        const nextLogs = habit.logs.some((log) => log.date === dateString)
+          ? habit.logs.map((log) => (log.date === dateString ? { ...log, ...action.log } : log))
+          : [...habit.logs, { ...action.log, date: dateString }];
+
+        const nextLog = nextLogs.find((log) => log.date === dateString);
+        const isComplete = nextLog ? isCompletedHabitLog(habit, nextLog) : false;
+        if (isComplete !== wasComplete) {
+          scoreAreaId = habit.areaId;
+          scoreDelta = isComplete ? 1 : -0.5;
+        }
+
+        return updateHabitStreak(habit, nextLogs, dateString);
+      });
+
+      return {
+        ...state,
+        habits: nextHabits,
+        areas: scoreAreaId ? updateAreaScore(state.areas, scoreAreaId, scoreDelta) : state.areas,
+      };
+    }
+    case 'ADD_NOTE':
+      return { ...state, notes: [action.note, ...state.notes] };
+    case 'UPDATE_NOTE':
+      return {
+        ...state,
+        notes: state.notes.map((note) => (note.id === action.noteId ? { ...note, ...action.updates } : note)),
+      };
+    case 'DELETE_NOTE':
+      return { ...state, notes: state.notes.filter((note) => note.id !== action.noteId) };
+    case 'ADD_TOPIC':
+      return { ...state, topics: [action.topic, ...state.topics] };
+    case 'ADD_COURSE':
+      return { ...state, courses: [action.course, ...state.courses] };
+    case 'UPDATE_COURSE':
+      return {
+        ...state,
+        courses: state.courses.map((course) =>
+          course.id === action.courseId ? { ...course, ...action.updates } : course,
+        ),
+      };
+    case 'SET_ACTIVE_COURSE':
+      return {
+        ...state,
+        courses: state.courses.map((course) => ({
+          ...course,
+          isActive: course.id === action.courseId,
+        })),
+      };
+    case 'TOGGLE_COURSE_LESSON':
+      return {
+        ...state,
+        courses: state.courses.map((course) => {
+          if (course.id !== action.courseId) return course;
+          const modules = course.modules.map((module) => {
+            const lessons = module.lessons.map((lesson) => {
+              if (module.id === action.moduleId && lesson.id === action.lessonId) {
+                return { ...lesson, done: !lesson.done, isCurrent: true };
+              }
+              return { ...lesson, isCurrent: false };
+            });
+            return { ...module, lessons };
+          });
+
+          const completedLessons = modules.reduce(
+            (sum, module) => sum + module.lessons.filter((lesson) => lesson.done).length,
+            0,
+          );
+
+          return {
+            ...course,
+            modules,
+            completedLessons,
+          };
+        }),
+      };
+    case 'ADD_VAULT_ITEM':
+      return { ...state, vaultItems: [action.item, ...state.vaultItems] };
+    case 'ADD_RESOURCE':
+      return { ...state, resources: [action.resource, ...state.resources] };
+    case 'DECIDE_RESOURCE':
+      return {
+        ...state,
+        resources: state.resources.map((resource) =>
+          resource.id === action.resourceId ? { ...resource, status: action.status, decision: action.decision } : resource,
+        ),
+      };
+    case 'SET_DAY_RATING':
+      return { ...state, dayRating: action.rating };
+    case 'SET_MORNING_CHECKIN':
+      return { ...state, morningCheckIn: action.checkin };
+    case 'DISMISS_MORNING':
+      return { ...state, morningCheckIn: { ...state.morningCheckIn, dismissed: true } };
+    case 'SET_EVENING_CHECKIN':
+      return { ...state, eveningCheckIn: action.checkin };
+    case 'DISMISS_EVENING':
+      return { ...state, eveningCheckIn: { ...state.eveningCheckIn, dismissed: true } };
+    case 'SAVE_REFLECTION':
+      return { ...state, weeklyReflection: action.reflection };
+    default:
+      return state;
+  }
+}
+
+function createInitialState(): AppState {
+  return {
+    ...createSeedState(),
+    theme: readInitialTheme(),
   };
+}
 
-  const deleteTask = (id: string) => setTasks(ts => ts.filter(t => t.id !== id));
+export function AppProvider({ children }: { children: React.ReactNode }) {
+  const [state, dispatch] = React.useReducer(reducer, createInitialState());
 
-  const updateTask = (id: string, updates: Partial<Task>) => {
-    setTasks(ts => ts.map(t => t.id === id ? { ...t, ...updates } : t));
-  };
+  React.useEffect(() => {
+    document.documentElement.dataset.theme = state.theme;
+    window.localStorage.setItem(STORAGE_KEY, state.theme);
+  }, [state.theme]);
 
-  const logHabit = (id: string) => {
-    setHabits(hs => hs.map(h => {
-      if (h.id !== id || h.loggedToday) return h;
-      const newLast7 = [...h.last7];
-      newLast7[6] = 'done';
-      return { ...h, loggedToday: true, streak: h.streak + 1, last7: newLast7 };
-    }));
-  };
-
-  const setHabitMissReason = (id: string, reason: string) => {
-    setHabits(hs => hs.map(h => h.id === id ? { ...h, missReason: reason } : h));
-  };
-
-  const addVaultItem = (item: Omit<VaultItem, 'id'>) => {
-    setVaultItems(vs => [{ ...item, id: `v${Date.now()}` }, ...vs]);
-  };
-
-  const addNote = (note: Omit<LearnNote, 'id'>) => {
-    setNotes(ns => [{ ...note, id: `n${Date.now()}` }, ...ns]);
-  };
-
-  const updateNoteTaskCount = (id: string) => {
-    setNotes(ns => ns.map(n => n.id === id ? { ...n, tasksCreated: n.tasksCreated + 1 } : n));
-  };
-
-  const decidePendingResource = (id: string) => {
-    setPendingResources(prs => prs.map(pr => pr.id === id ? { ...pr, decided: true } : pr));
-  };
-
-  const pendingResourceCount = pendingResources.filter(pr => !pr.decided).length;
-
-  return (
-    <AppContext.Provider value={{
-      theme, toggleTheme,
-      tasks, toggleTask, addTask, deleteTask, updateTask,
-      habits, logHabit, setHabitMissReason,
-      dayRating, setDayRating,
-      areaScores: initialAreas,
-      weeklyScore: 74,
-      userName: 'Arjun Mehta',
-      day: 47,
-      vaultItems, addVaultItem,
-      notes, addNote, updateNoteTaskCount,
-      pendingResources, decidePendingResource,
-      pastActions: initialPastActions,
-      pendingResourceCount,
-    }}>
-      {children}
-    </AppContext.Provider>
+  const value = React.useMemo<AppContextValue>(
+    () => ({
+      state,
+      dispatch,
+      getTodayLogs: (habitId) => {
+        const habit = state.habits.find((entry) => entry.id === habitId);
+        return habit ? getTodayLog(habit) : undefined;
+      },
+      getTodayHabitStatus: (habitId) => {
+        const habit = state.habits.find((entry) => entry.id === habitId);
+        return habit ? getTodayHabitStatusFromHabit(habit) : 'pending';
+      },
+    }),
+    [state],
   );
-};
 
-export { AREA_COLORS, TAG_COLORS, TAG_BG_COLORS };
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+}
+
