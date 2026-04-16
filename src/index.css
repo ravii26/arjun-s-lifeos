@@ -1,120 +1,109 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root,
-  [data-theme="dark"] {
-    --background: #08080F;
-    --surface-1: #111119;
-    --surface-2: #18181F;
-    --surface-3: #1E1E28;
+  .dark {
+    --bg: #08080F;
+    --s1: #111119;
+    --s2: #18181F;
+    --s3: #1E1E28;
     --border: rgba(255,255,255,0.07);
     --border-strong: rgba(255,255,255,0.12);
     --primary: #7C6FF7;
     --primary-hover: #9B96FA;
-    --primary-muted-bg: rgba(124,111,247,0.12);
+    --primary-muted: rgba(124,111,247,0.12);
     --teal: #1DB37E;
-    --teal-muted-bg: rgba(29,179,126,0.12);
+    --teal-muted: rgba(29,179,126,0.12);
     --amber: #C4840A;
-    --amber-muted-bg: rgba(196,132,10,0.12);
-    --text-primary: #EEEDF8;
-    --text-secondary: #9897B8;
-    --text-muted: #5C5B78;
-    --delete-red: #E05252;
-
-    --area-career: #7C6FF7;
-    --area-health: #1DB37E;
-    --area-mind: #4A90D9;
-    --area-finance: #C4840A;
-    --area-relationships: #E0607E;
-    --area-creative: #E8850C;
+    --amber-muted: rgba(196,132,10,0.12);
+    --text-1: #EEEDF8;
+    --text-2: #9897B8;
+    --text-3: #5C5B78;
   }
 
   [data-theme="light"] {
-    --background: #F5F4FF;
-    --surface-1: #FFFFFF;
-    --surface-2: #F0EFFA;
-    --surface-3: #E8E7F5;
+    --bg: #F5F4FF;
+    --s1: #FFFFFF;
+    --s2: #F0EFFA;
+    --s3: #E8E7F5;
     --border: rgba(0,0,0,0.07);
     --border-strong: rgba(0,0,0,0.12);
     --primary: #6055E8;
     --primary-hover: #7C6FF7;
-    --primary-muted-bg: rgba(96,85,232,0.10);
+    --primary-muted: rgba(96,85,232,0.10);
     --teal: #0F9468;
-    --teal-muted-bg: rgba(15,148,104,0.10);
+    --teal-muted: rgba(15,148,104,0.10);
     --amber: #A06C00;
-    --amber-muted-bg: rgba(160,108,0,0.10);
-    --text-primary: #16151F;
-    --text-secondary: #4A4868;
-    --text-muted: #8887A8;
-    --delete-red: #D04040;
-
-    --area-career: #6055E8;
-    --area-health: #0F9468;
-    --area-mind: #3A7BC8;
-    --area-finance: #A06C00;
-    --area-relationships: #D04E6A;
-    --area-creative: #D07808;
+    --amber-muted: rgba(160,108,0,0.10);
+    --text-1: #16151F;
+    --text-2: #4A4868;
+    --text-3: #8887A8;
   }
 
   * {
     box-sizing: border-box;
-    margin: 0;
-    padding: 0;
   }
 
+  html,
   body {
-    font-family: 'Inter', -apple-system, sans-serif;
-    background: var(--background);
-    color: var(--text-primary);
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text-1);
     font-size: 14px;
     font-weight: 400;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
-    transition: background 300ms ease, color 300ms ease;
+    text-rendering: geometricPrecision;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  button,
+  input,
+  textarea {
+    font: inherit;
+    font-weight: 400;
   }
 }
 
 @layer utilities {
   .card-base {
-    background: var(--surface-1);
+    background: var(--s1);
     border: 0.5px solid var(--border);
     border-radius: 14px;
     padding: 20px;
+    box-shadow: none;
   }
 
-  .card-elevated {
-    background: var(--surface-2);
-    border: 0.5px solid var(--border);
-    border-radius: 14px;
-    padding: 20px;
-  }
-
-  .interactive {
-    transition: background 150ms ease, transform 80ms ease;
-    cursor: pointer;
-  }
-  .interactive:hover {
-    background: var(--surface-3);
-  }
-  .interactive:active {
+  .tap-scale:active {
     transform: scale(0.98);
-  }
-  .interactive:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+    transition: transform 80ms;
   }
 
-  @keyframes pulse-border {
-    0%, 100% { border-color: var(--amber); opacity: 1; }
-    50% { border-color: var(--amber); opacity: 0.5; }
+  .hover-surface {
+    transition: background-color 150ms ease;
   }
 
-  @keyframes habit-fill {
-    0% { transform: scale(0.8); opacity: 0; }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); opacity: 1; }
+  .hover-surface:hover {
+    background: var(--s3);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  @keyframes borderPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
   }
 
   @keyframes fade-in-up {
@@ -131,11 +120,45 @@
     animation: fade-in-up 200ms ease forwards;
   }
 
-  .animate-pulse-border {
-    animation: pulse-border 2s ease-in-out infinite;
+  .animate-pulse {
+    animation: pulse 2s infinite;
   }
 
-  .animate-pulse-dot {
-    animation: pulse-dot 1.5s ease-in-out infinite;
+  .animate-border-pulse {
+    animation: borderPulse 2s infinite;
+  }
+
+  .text-page-title {
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1.3;
+  }
+
+  .text-section {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.35;
+  }
+
+  .text-card-title {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .text-caption {
+    font-size: 12px;
+    font-weight: 400;
+  }
+
+  .text-metric {
+    font-size: 32px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .text-ai {
+    font-size: 14px;
+    font-weight: 400;
+    font-style: italic;
   }
 }
