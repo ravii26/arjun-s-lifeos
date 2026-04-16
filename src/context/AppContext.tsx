@@ -1,6 +1,5 @@
 import { ReactNode, createContext, useContext, useEffect, useMemo, useReducer } from "react";
 import {
-  ActionConversion,
   AppState,
   Course,
   LifeArea,
@@ -29,6 +28,16 @@ import {
   vaultItems,
   weeklyReflection,
 } from "../data/seed";
+import type {
+  ActionConversion,
+  CoachMessage,
+  DumpItem,
+  FinalAppState,
+  TimeTrackerSession,
+  VaultDeliveryLog,
+  VaultUpgradeContext,
+} from "../types";
+import { coachMessages, dumpItems, timeTrackerSessions, vaultDeliveryLog } from "./finalSeed";
 
 const THEME_STORAGE_KEY = "lifeos-theme";
 const MORNING_DISMISS_STORAGE_KEY = "lifeos-morning-dismissed";
@@ -59,7 +68,18 @@ type Action =
   | { type: "ADD_TIME_BLOCK"; payload: { block: TimeBlock } }
   | { type: "UPDATE_TIME_BLOCK_STATUS"; payload: { blockId: string; status: TimeBlock["status"] } }
   | { type: "ADD_ACTION_HISTORY"; payload: { item: ActionConversion } }
-  | { type: "ADD_NOTEBOOK_ENTRY"; payload: { entry: NotebookEntry } };
+  | { type: "ADD_NOTEBOOK_ENTRY"; payload: { entry: NotebookEntry } }
+  | { type: "ADD_DUMP_ITEM"; payload: { item: DumpItem } }
+  | { type: "UPDATE_DUMP_ITEM"; payload: { item: DumpItem } }
+  | { type: "DELETE_DUMP_ITEM"; payload: { itemId: string } }
+  | { type: "CLEAR_PROCESSED_DUMPS" }
+  | { type: "LOG_VAULT_DELIVERY"; payload: { entry: VaultDeliveryLog } }
+  | { type: "ADD_COACH_MESSAGE"; payload: { message: CoachMessage } }
+  | { type: "CLEAR_COACH_HISTORY" }
+  | { type: "START_TRACKER_SESSION"; payload: { session: TimeTrackerSession } }
+  | { type: "END_TRACKER_SESSION"; payload: { sessionId: string; endedAt: string; durationSec: number } }
+  | { type: "DISCARD_TRACKER_SESSION" }
+  | { type: "UPGRADE_VAULT_ITEM"; payload: { itemId: string; context: VaultUpgradeContext } };
 
 interface AppContextValue {
   state: AppState;
@@ -123,7 +143,7 @@ const recomputeAreas = (state: Pick<AppState, "areas" | "tasks" | "habits">): Li
   });
 };
 
-const initialState: AppState = {
+const initialState: FinalAppState = {
   theme: getStoredTheme(),
   tasks,
   habits,
@@ -145,11 +165,16 @@ const initialState: AppState = {
   notebookEntries,
   timeBlocks,
   actionHistory,
+  dumpItems,
+  vaultDeliveryLog,
+  coachMessages,
+  timeTrackerSessions,
+  activeTrackerSessionId: null,
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-const appReducer = (state: AppState, action: Action): AppState => {
+const appReducer = (state: FinalAppState, action: Action): FinalAppState => {
   switch (action.type) {
     case "TOGGLE_THEME": {
       return {
@@ -389,6 +414,86 @@ const appReducer = (state: AppState, action: Action): AppState => {
       return {
         ...state,
         notebookEntries: [action.payload.entry, ...state.notebookEntries],
+      };
+    }
+    case "ADD_DUMP_ITEM": {
+      return {
+        ...state,
+        dumpItems: [action.payload.item, ...state.dumpItems],
+      };
+    }
+    case "UPDATE_DUMP_ITEM": {
+      return {
+        ...state,
+        dumpItems: state.dumpItems.map((item) => (item.id === action.payload.item.id ? action.payload.item : item)),
+      };
+    }
+    case "DELETE_DUMP_ITEM": {
+      return {
+        ...state,
+        dumpItems: state.dumpItems.filter((item) => item.id !== action.payload.itemId),
+      };
+    }
+    case "CLEAR_PROCESSED_DUMPS": {
+      return {
+        ...state,
+        dumpItems: state.dumpItems.filter((item) => !item.processed),
+      };
+    }
+    case "LOG_VAULT_DELIVERY": {
+      return {
+        ...state,
+        vaultDeliveryLog: [action.payload.entry, ...state.vaultDeliveryLog],
+      };
+    }
+    case "ADD_COACH_MESSAGE": {
+      return {
+        ...state,
+        coachMessages: [...state.coachMessages, action.payload.message],
+      };
+    }
+    case "CLEAR_COACH_HISTORY": {
+      return {
+        ...state,
+        coachMessages: [],
+      };
+    }
+    case "START_TRACKER_SESSION": {
+      return {
+        ...state,
+        timeTrackerSessions: [...state.timeTrackerSessions, action.payload.session],
+        activeTrackerSessionId: action.payload.session.id,
+      };
+    }
+    case "END_TRACKER_SESSION": {
+      return {
+        ...state,
+        timeTrackerSessions: state.timeTrackerSessions.map((session) =>
+          session.id === action.payload.sessionId
+            ? { ...session, endedAt: action.payload.endedAt, durationSec: action.payload.durationSec }
+            : session,
+        ),
+        activeTrackerSessionId: null,
+      };
+    }
+    case "DISCARD_TRACKER_SESSION": {
+      if (!state.activeTrackerSessionId) {
+        return state;
+      }
+      return {
+        ...state,
+        timeTrackerSessions: state.timeTrackerSessions.filter((session) => session.id !== state.activeTrackerSessionId),
+        activeTrackerSessionId: null,
+      };
+    }
+    case "UPGRADE_VAULT_ITEM": {
+      return {
+        ...state,
+        vaultItems: state.vaultItems.map((item) =>
+          item.id === action.payload.itemId
+            ? { ...item, aiContext: action.payload.context, content: `${item.content}\n\nAI context: ${action.payload.context.reasoning}` }
+            : item,
+        ),
       };
     }
     default:
