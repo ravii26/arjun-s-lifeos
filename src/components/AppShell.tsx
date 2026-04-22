@@ -1,8 +1,36 @@
 import React, { useState } from 'react';
-import './design-system.css';
-import { Icon, LucideIcon } from 'lucide-react'; // Assuming Lucide icons are installed
+import '../styles/design-system.css';
+import * as Icons from 'lucide-react'; // Import all icons as a single object
+import { NavLink } from 'react-router-dom';
 
-const AppShell = ({ children, pageTitle }) => {
+const NAV_GROUPS = [
+  {
+    title: 'Execution',
+    items: [
+      { icon: Icons.LayoutGrid, label: 'Dashboard', path: '/dashboard' },
+      { icon: Icons.CheckSquare, label: 'Tasks', path: '/tasks' },
+      { icon: Icons.Repeat, label: 'Habits', path: '/habits' },
+      { icon: Icons.Calendar, label: 'Calendar', path: '/calendar' },
+    ],
+  },
+  {
+    title: 'Growth',
+    items: [
+      { icon: Icons.BookOpen, label: 'Learn', path: '/learn' },
+      { icon: Icons.PieChart, label: 'Areas', path: '/areas' },
+    ],
+  },
+  {
+    title: 'Support',
+    items: [
+      { icon: Icons.Lock, label: 'Vault', path: '/vault' },
+      { icon: Icons.Inbox, label: 'Dump', path: '/dump' },
+      { icon: Icons.Settings, label: 'Settings', path: '/settings' },
+    ],
+  },
+];
+
+const AppShell = ({ children, pageTitle }: { children: React.ReactNode; pageTitle: string }) => {
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isTimerRunning, setTimerRunning] = useState(true); // Example state for timer
 
@@ -35,23 +63,14 @@ const AppShell = ({ children, pageTitle }) => {
 
         {/* Navigation Items */}
         <nav style={{ flexGrow: 1, padding: 'var(--space-4)' }}>
-          <div style={{ marginBottom: 'var(--space-4)' }}>
-            <span style={{ fontFamily: 'var(--font-ui)', fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Execution</span>
-            <NavItem icon="grid" label="Dashboard" isCollapsed={isSidebarCollapsed} />
-            <NavItem icon="check-square" label="Tasks" isCollapsed={isSidebarCollapsed} />
-            <NavItem icon="repeat" label="Habits" isCollapsed={isSidebarCollapsed} />
-            <NavItem icon="calendar" label="Calendar" isCollapsed={isSidebarCollapsed} />
-          </div>
-          <div style={{ marginBottom: 'var(--space-4)' }}>
-            <span style={{ fontFamily: 'var(--font-ui)', fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Growth</span>
-            <NavItem icon="book-open" label="Learn" isCollapsed={isSidebarCollapsed} />
-            <NavItem icon="pie-chart" label="Areas" isCollapsed={isSidebarCollapsed} />
-          </div>
-          <div>
-            <span style={{ fontFamily: 'var(--font-ui)', fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Support</span>
-            <NavItem icon="lock" label="Vault" isCollapsed={isSidebarCollapsed} />
-            <NavItem icon="inbox" label="Dump" isCollapsed={isSidebarCollapsed} />
-          </div>
+          {NAV_GROUPS.map((group) => (
+            <div key={group.title} style={{ marginBottom: 'var(--space-4)' }}>
+              <span style={{ fontFamily: 'var(--font-ui)', fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.5px' }}>{group.title}</span>
+              {group.items.map((item) => (
+                <NavItem key={item.path} icon={item.icon} label={item.label} path={item.path} isCollapsed={isSidebarCollapsed} />
+              ))}
+            </div>
+          ))}
         </nav>
 
         {/* Bottom Section */}
@@ -110,24 +129,29 @@ const AppShell = ({ children, pageTitle }) => {
   );
 };
 
-const NavItem = ({ icon, label, isCollapsed }) => (
-  <div
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      padding: '8px 12px',
-      borderRadius: 'var(--radius-md)',
-      cursor: 'pointer',
-      color: 'var(--text-muted)',
-      transition: 'background-color 150ms ease',
-    }}
-    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-hover)')}
-    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-  >
-    <Icon name={icon} size={20} color="var(--text-muted)" iconNode={[]} />
-    {!isCollapsed && <span style={{ fontFamily: 'var(--font-ui)', fontSize: '14px', color: 'var(--text-secondary)' }}>{label}</span>}
-  </div>
-);
+const NavItem = ({ icon: IconComponent, label, path, isCollapsed }: { icon: React.ComponentType<{ size?: string | number; color?: string }>; label: string; path: string; isCollapsed: boolean }) => {
+
+  return (
+    <NavLink
+      to={path}
+      style={({ isActive }) => ({
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        padding: '8px 12px',
+        borderRadius: 'var(--radius-md)',
+        cursor: 'pointer',
+        textDecoration: 'none',
+        backgroundColor: isActive ? 'var(--surface-hover)' : 'transparent',
+        color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
+        transition: 'background-color 150ms ease',
+        marginTop: '4px',
+      })}
+    >
+      <IconComponent size={20} color="currentColor" />
+      {!isCollapsed && <span style={{ fontFamily: 'var(--font-ui)', fontSize: '14px', color: 'currentColor' }}>{label}</span>}
+    </NavLink>
+  );
+};
 
 export default AppShell;

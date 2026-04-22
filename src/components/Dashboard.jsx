@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './design-system.css';
+import '../styles/design-system.css';
 
 const Dashboard = () => {
   const [tasks, setTasks] = useState([

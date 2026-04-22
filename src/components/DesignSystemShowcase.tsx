@@ -1,5 +1,5 @@
 import React from 'react';
-import './design-system.css';
+import '../styles/design-system.css';
 
 const DesignSystemShowcase = () => {
   return (

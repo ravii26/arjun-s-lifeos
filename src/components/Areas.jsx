@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import './design-system.css';
+import '../styles/design-system.css';
 
 const Areas = () => {
   const [selectedArea, setSelectedArea] = useState(null);

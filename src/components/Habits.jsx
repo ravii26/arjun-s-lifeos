@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './design-system.css';
+import '../styles/design-system.css';
 
 const Habits = () => {
   const [habits, setHabits] = useState([
