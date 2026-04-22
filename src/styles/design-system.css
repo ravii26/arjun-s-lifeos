@@ -1,0 +1,101 @@
+/* LifeOS Design System CSS Variables */
+
+:root {
+  /* Typography */
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --font-ui: 'Geist', sans-serif;
+
+  /* Font Weights */
+  --weight-bold: 700;
+  --weight-extra-bold: 800;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semi-bold: 600;
+
+  /* Font Sizes and Line Heights */
+  --font-hero: 48px;
+  --line-hero: 56px;
+  --font-display: 32px;
+  --line-display: 40px;
+  --font-title: 20px;
+  --line-title: 28px;
+  --font-label: 13px;
+  --line-label: 20px;
+  --font-body: 14px;
+  --line-body: 22px;
+  --font-caption: 11px;
+  --line-caption: 16px;
+  --font-data: 16px;
+  --line-data: 24px;
+
+  /* Colors */
+  /* Dark Mode */
+  --bg: #080809;
+  --surface: #0F0F11;
+  --surface-hover: #141418;
+  --surface-raised: #18181F;
+  --border: #1C1C22;
+  --border-strong: #2A2A35;
+  --text-primary: #F0F0F5;
+  --text-secondary: #888896;
+  --text-muted: #44444F;
+
+  /* Light Mode */
+  --light-bg: #F8F8FA;
+  --light-surface: #FFFFFF;
+  --light-surface-hover: #F2F2F6;
+  --light-surface-raised: #FAFAFA;
+  --light-border: #E4E4EC;
+  --light-border-strong: #CDCDD8;
+  --light-text-primary: #0A0A0F;
+  --light-text-secondary: #55555F;
+  --light-text-muted: #AAAABC;
+
+  /* Accent Colors */
+  --accent: #C8FF57;
+  --accent-dim: #C8FF5720;
+  --blue: #4D9CFF;
+  --blue-dim: #4D9CFF18;
+  --orange: #FF7A45;
+  --orange-dim: #FF7A4518;
+  --purple: #9D7AFF;
+  --purple-dim: #9D7AFF18;
+  --pink: #FF5C8A;
+  --pink-dim: #FF5C8A18;
+  --teal: #2DDDB4;
+  --teal-dim: #2DDDB418;
+  --red: #FF4A6B;
+  --red-dim: #FF4A6B18;
+
+  /* Area Colors */
+  --career: var(--blue);
+  --health: var(--teal);
+  --mind: var(--purple);
+  --finance: var(--accent);
+  --relationships: var(--pink);
+  --creative: var(--orange);
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Motion */
+  --motion-fast: 150ms ease;
+  --motion-base: 250ms ease-out;
+  --motion-spring: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
