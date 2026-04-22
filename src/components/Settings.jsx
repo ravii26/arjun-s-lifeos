@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import '../styles/design-system.css';
 import './Settings.css';
 
@@ -17,6 +17,35 @@ const SETTINGS_GROUPS = [
   { group: 'PREFERENCES', items: ['Theme & Display', 'Shortcuts'] },
   { group: 'ADVANCED', items: ['Export', 'Integrations'] },
 ];
+
+const useCountUp = (target, duration = 650) => {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    const endValue = Number.isFinite(target) ? target : 0;
+    if (endValue <= 0) {
+      setValue(0);
+      return undefined;
+    }
+
+    let frame = null;
+    const start = performance.now();
+
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      setValue(Math.round(endValue * progress));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [target, duration]);
+
+  return value;
+};
 
 const Settings = () => {
   const [activeSection, setActiveSection] = useState('Profile');
@@ -92,6 +121,15 @@ const Settings = () => {
   );
 
   const totalUsage = usageData.reduce((sum, item) => sum + item.count, 0);
+  const activeAreasCount = areas.filter((area) => area.active).length;
+  const notificationCount = Object.values(notifications).filter((value) => value === true).length;
+
+  const animatedTasks = useCountUp(profile.stats.tasksCompleted, 700);
+  const animatedHabits = useCountUp(profile.stats.habitsLogged, 700);
+  const animatedHours = useCountUp(profile.stats.hoursTracked, 700);
+  const animatedActiveAreas = useCountUp(activeAreasCount, 700);
+  const animatedUsage = useCountUp(totalUsage, 700);
+  const animatedNotifications = useCountUp(notificationCount, 700);
 
   const renderProfile = () => (
     <section className="settings-section">
@@ -371,7 +409,42 @@ const Settings = () => {
         ))}
       </aside>
 
-      <main className="settings-content">{renderContent()}</main>
+      <main className="settings-content">
+        <section className="settings-snapshot-grid">
+          <article className="settings-snapshot-card">
+            <small>Tasks completed</small>
+            <strong>{animatedTasks}</strong>
+            <span>overall execution</span>
+          </article>
+          <article className="settings-snapshot-card">
+            <small>Habits logged</small>
+            <strong>{animatedHabits}</strong>
+            <span>tracked routines</span>
+          </article>
+          <article className="settings-snapshot-card">
+            <small>Hours tracked</small>
+            <strong>{animatedHours}</strong>
+            <span>focus time</span>
+          </article>
+          <article className="settings-snapshot-card">
+            <small>Active areas</small>
+            <strong>{animatedActiveAreas}</strong>
+            <span>enabled focus areas</span>
+          </article>
+          <article className="settings-snapshot-card">
+            <small>Usage total</small>
+            <strong>{animatedUsage}</strong>
+            <span>module actions</span>
+          </article>
+          <article className="settings-snapshot-card">
+            <small>Notifications on</small>
+            <strong>{animatedNotifications}</strong>
+            <span>enabled alerts</span>
+          </article>
+        </section>
+
+        {renderContent()}
+      </main>
     </div>
   );
 };

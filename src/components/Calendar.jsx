@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import '../styles/design-system.css';
 import './Calendar.css';
 
@@ -10,6 +10,35 @@ const AREA_COLORS = {
 };
 
 const HOURS = Array.from({ length: 18 }).map((_, index) => index + 6);
+
+const useCountUp = (target, duration = 600) => {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    const endValue = Number.isFinite(target) ? target : 0;
+    if (endValue <= 0) {
+      setValue(0);
+      return undefined;
+    }
+
+    let frame = null;
+    const start = performance.now();
+
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      setValue(Math.round(endValue * progress));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [target, duration]);
+
+  return value;
+};
 
 const toMinutes = (timeText) => {
   const [h, m] = timeText.split(':').map(Number);
@@ -43,6 +72,19 @@ const Calendar = () => {
     [sessions]
   );
 
+  const plannedHours = plannedMinutes / 60;
+  const actualHours = actualMinutes / 60;
+  const alignmentPct = Math.min(100, Math.round((actualMinutes / Math.max(plannedMinutes, 1)) * 100));
+  const plannedCount = blocks.length;
+  const completedCount = blocks.filter((block) => block.status === 'Completed').length;
+  const missedCount = blocks.filter((block) => block.status === 'Missed').length;
+
+  const animatedPlanned = useCountUp(plannedCount, 650);
+  const animatedCompleted = useCountUp(completedCount, 650);
+  const animatedAlignment = useCountUp(alignmentPct, 650);
+
+  const timelineModeLabel = view === 'Day' ? 'Today timeline' : 'This week timeline';
+
   return (
     <div className="calendar-screen">
       <header className="calendar-head">
@@ -57,8 +99,32 @@ const Calendar = () => {
         </div>
       </header>
 
+      <section className="calendar-snapshot-grid">
+        <article className="calendar-snapshot-card">
+          <small>Planned blocks</small>
+          <strong>{animatedPlanned}</strong>
+          <span>{plannedHours.toFixed(1)}h planned</span>
+        </article>
+        <article className="calendar-snapshot-card">
+          <small>Completed</small>
+          <strong>{animatedCompleted}</strong>
+          <span>{completedCount}/{plannedCount}</span>
+        </article>
+        <article className="calendar-snapshot-card">
+          <small>Alignment</small>
+          <strong>{animatedAlignment}%</strong>
+          <span>{actualHours.toFixed(1)}h actual</span>
+        </article>
+        <article className="calendar-snapshot-card">
+          <small>Missed</small>
+          <strong>{missedCount}</strong>
+          <span>needs recovery</span>
+        </article>
+      </section>
+
       <div className="calendar-grid">
         <aside className="time-col">
+          <div className="time-col-head">{timelineModeLabel}</div>
           {HOURS.map((hour) => (
             <div key={hour} className="time-cell">{hour}:00</div>
           ))}
@@ -79,6 +145,7 @@ const Calendar = () => {
                   className={`block ${block.status.toLowerCase()}`}
                   style={{ top, height, borderLeftColor: AREA_COLORS[block.area], background: `${AREA_COLORS[block.area]}18` }}
                 >
+                  <span className="block-chip">{block.status}</span>
                   <strong>{block.title}</strong>
                   <p>{block.start} - {block.end}</p>
                   <small>{block.source}</small>
@@ -95,6 +162,7 @@ const Calendar = () => {
                   className="session"
                   style={{ top, height, borderLeftColor: AREA_COLORS[session.area], background: `${AREA_COLORS[session.area]}2b` }}
                 >
+                  <span className="block-chip session-chip">Actual</span>
                   <strong>{session.title}</strong>
                   <p>{session.start} - {session.end}</p>
                 </article>
@@ -116,8 +184,8 @@ const Calendar = () => {
 
           <article>
             <h4>Consistency</h4>
-            <div className="progress"><div style={{ width: `${Math.min(100, Math.round((actualMinutes / plannedMinutes) * 100))}%` }} /></div>
-            <small>{Math.min(100, Math.round((actualMinutes / plannedMinutes) * 100))}% alignment</small>
+            <div className="progress"><div style={{ width: `${alignmentPct}%` }} /></div>
+            <small>{alignmentPct}% alignment</small>
           </article>
 
           <article>

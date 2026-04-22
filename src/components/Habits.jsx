@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import '../styles/design-system.css';
 import './Habits.css';
 
@@ -10,6 +10,35 @@ const AREA_COLORS = {
 };
 
 const defaultHistory = () => [false, false, false, false, false, false, false];
+
+const useCountUp = (target, duration = 600) => {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    const endValue = Number.isFinite(target) ? target : 0;
+    if (endValue <= 0) {
+      setValue(0);
+      return undefined;
+    }
+
+    let frame = null;
+    const start = performance.now();
+
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      setValue(Math.round(endValue * progress));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [target, duration]);
+
+  return value;
+};
 
 const Habits = () => {
   const [habits, setHabits] = useState([
@@ -56,6 +85,12 @@ const Habits = () => {
     if (habit.type === 'Boolean') return habit.progress >= 1;
     return habit.progress >= habit.target;
   }).length;
+  const completionPct = Math.round((completedToday / habits.length) * 100);
+  const totalProgress = habits.reduce((sum, habit) => {
+    const current = habit.type === 'Boolean' ? Math.min(1, habit.progress) : Math.min(habit.target, habit.progress);
+    return sum + (current / habit.target) * 100;
+  }, 0);
+  const avgProgress = Math.round(totalProgress / habits.length);
 
   const slotsText = `${habits.length} / 8 slots used`;
 
@@ -66,6 +101,10 @@ const Habits = () => {
     }, {});
     return Object.entries(counts);
   }, [habits]);
+
+  const animatedCompleted = useCountUp(completedToday, 650);
+  const animatedCompletionPct = useCountUp(completionPct, 650);
+  const animatedAvgProgress = useCountUp(avgProgress, 650);
 
   const updateHabit = (habitId, updater) => {
     setHabits((prev) => prev.map((habit) => (habit.id === habitId ? updater(habit) : habit)));
@@ -126,7 +165,7 @@ const Habits = () => {
       <section className="habits-summary">
         <article>
           <span className="mono">Completed today</span>
-          <strong>{completedToday}/{habits.length}</strong>
+          <strong>{animatedCompleted}/{habits.length}</strong>
         </article>
         <article>
           <span className="mono">Longest current streak</span>
@@ -137,6 +176,18 @@ const Habits = () => {
           <div className="areas-inline">
             {areaTotals.map(([area, count]) => <span key={area}>{area}: {count}</span>)}
           </div>
+        </article>
+        <article>
+          <span className="mono">Completion rate</span>
+          <strong>{animatedCompletionPct}%</strong>
+        </article>
+        <article>
+          <span className="mono">Average progress</span>
+          <strong>{animatedAvgProgress}%</strong>
+        </article>
+        <article>
+          <span className="mono">Slots used</span>
+          <strong>{habits.length}/8</strong>
         </article>
       </section>
 
@@ -197,6 +248,16 @@ const Habits = () => {
                     <button className="btn tiny" onClick={() => shiftCount(habit, 1)}>+</button>
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="habit-progress">
+              <div className="habit-progress-head">
+                <span>Today</span>
+                <strong>{habit.type === 'Boolean' ? (habit.progress >= 1 ? 'Done' : 'Open') : `${habit.progress}/${habit.target}${habit.type === 'Timer' ? 'm' : ''}`}</strong>
+              </div>
+              <div className="habit-progress-track">
+                <div style={{ width: `${Math.min(100, Math.round((habit.type === 'Boolean' ? Math.min(1, habit.progress) : habit.progress) / habit.target * 100))}%` }} />
               </div>
             </div>
 

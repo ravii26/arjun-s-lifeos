@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import '../styles/design-system.css';
 import './Dashboard.css';
 
@@ -9,6 +9,35 @@ const AREA_COLORS = {
   Finance: 'var(--accent)',
   Relationships: 'var(--pink)',
   Creative: 'var(--orange)',
+};
+
+const useCountUp = (target, duration = 600) => {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    const to = Number.isFinite(target) ? target : 0;
+    if (to <= 0) {
+      setValue(0);
+      return undefined;
+    }
+
+    let frame = null;
+    const start = performance.now();
+
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      setValue(Math.round(to * progress));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [target, duration]);
+
+  return value;
 };
 
 const Dashboard = () => {
@@ -34,8 +63,9 @@ const Dashboard = () => {
 
   const [timerRunning, setTimerRunning] = useState(true);
   const [timerSeconds, setTimerSeconds] = useState(1532);
+  const [focusLabel, setFocusLabel] = useState('Focus Work');
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!timerRunning) return;
     const interval = setInterval(() => setTimerSeconds((prev) => prev + 1), 1000);
     return () => clearInterval(interval);
@@ -43,15 +73,44 @@ const Dashboard = () => {
 
   const doneToday = tasks.filter((task) => task.done).length;
   const completionPct = Math.round((doneToday / tasks.length) * 100);
+  const habitDone = habits.filter((habit) => habit.current >= habit.target).length;
+  const avgScore = Math.round(areas.reduce((sum, area) => sum + area.score, 0) / areas.length);
+  const habitsPct = Math.round((habitDone / habits.length) * 100);
+
+  const now = new Date();
+  const weekDay = now.toLocaleDateString('en-US', { weekday: 'long' });
+  const monthDay = now.toLocaleDateString('en-US', { day: '2-digit', month: 'long' });
+  const weekNumber = Math.ceil(((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / 86400000 + new Date(now.getFullYear(), 0, 1).getDay() + 1) / 7);
 
   const weakestArea = useMemo(() => {
     return [...areas].sort((a, b) => a.score - b.score)[0];
   }, [areas]);
 
+  const animatedCompletion = useCountUp(completionPct, 700);
+  const animatedAvgScore = useCountUp(avgScore, 700);
+  const animatedWeakest = useCountUp(weakestArea?.score ?? 0, 700);
+
   const nextAction = useMemo(() => {
     const lowAreaTask = tasks.find((task) => !task.done && task.area === weakestArea.name);
     return lowAreaTask || tasks.find((task) => !task.done) || null;
   }, [tasks, weakestArea]);
+
+  const markNextActionDone = () => {
+    if (!nextAction) return;
+    setTasks((prev) => prev.map((task) => (task.id === nextAction.id ? { ...task, done: true } : task)));
+  };
+
+  const snoozeNextAction = () => {
+    if (!nextAction) return;
+    setTasks((prev) => {
+      const current = [...prev];
+      const index = current.findIndex((task) => task.id === nextAction.id);
+      if (index === -1) return prev;
+      const [item] = current.splice(index, 1);
+      current.push(item);
+      return current;
+    });
+  };
 
   const hh = String(Math.floor(timerSeconds / 3600)).padStart(2, '0');
   const mm = String(Math.floor((timerSeconds % 3600) / 60)).padStart(2, '0');
@@ -61,8 +120,8 @@ const Dashboard = () => {
     <div className="dashboard-screen">
       <section className="dashboard-col left">
         <header className="day-header">
-          <h2>Wednesday</h2>
-          <p>22 April · Week 16</p>
+          <h2>{weekDay}</h2>
+          <p>{monthDay} · Week {weekNumber}</p>
           <span>12 day streak 🔥</span>
         </header>
 
@@ -80,8 +139,8 @@ const Dashboard = () => {
             </>
           )}
           <div className="row">
-            <button className="btn accent">Start now</button>
-            <button className="btn ghost">Skip</button>
+            <button className="btn accent" onClick={markNextActionDone}>Mark done</button>
+            <button className="btn ghost" onClick={snoozeNextAction}>Snooze</button>
           </div>
         </article>
 
@@ -112,15 +171,34 @@ const Dashboard = () => {
         <div className="section-head">
           <h4>Life Areas · This Week</h4>
         </div>
+
+        <div className="snapshot-grid">
+          <article className="snapshot-card">
+            <small>Execution</small>
+            <strong>{animatedCompletion}%</strong>
+            <span>{doneToday}/{tasks.length} tasks complete</span>
+          </article>
+          <article className="snapshot-card">
+            <small>Habits</small>
+            <strong>{habitDone}/{habits.length}</strong>
+            <span>completed today</span>
+          </article>
+          <article className="snapshot-card">
+            <small>Overall score</small>
+            <strong>{animatedAvgScore}</strong>
+            <span>across all areas</span>
+          </article>
+        </div>
+
         <div className="area-grid">
           {areas.map((area) => (
-            <article className="area-card" key={area.name}>
+            <article className="area-card" key={area.name} style={{ '--ring-score': `${area.score}%` }}>
               <div className="score-ring" style={{ '--ring-color': AREA_COLORS[area.name], '--score': `${area.score}%` }}>
                 <span>{area.score}</span>
               </div>
               <div>
                 <h5 style={{ color: AREA_COLORS[area.name] }}>{area.name}</h5>
-                <p>{area.trend}</p>
+                <p className={`trend ${area.trend.startsWith('+') ? 'up' : area.trend.startsWith('-') ? 'down' : 'flat'}`}>{area.trend}</p>
                 <small>{area.stat}</small>
               </div>
             </article>
@@ -130,11 +208,16 @@ const Dashboard = () => {
 
       <section className="dashboard-col right">
         <article className="timer-card">
-          <h4>Focus Work</h4>
+          <h4>{focusLabel}</h4>
           <p>{hh}:{mm}:{ss}</p>
-          <button className="btn ghost" onClick={() => setTimerRunning((prev) => !prev)}>
-            {timerRunning ? 'Pause' : 'Resume'}
-          </button>
+          <div className="row">
+            <button className="btn ghost" onClick={() => setTimerRunning((prev) => !prev)}>
+              {timerRunning ? 'Pause' : 'Resume'}
+            </button>
+            <button className="btn ghost" onClick={() => { setTimerSeconds(0); setFocusLabel('Reset Focus'); }}>
+              Reset
+            </button>
+          </div>
         </article>
 
         <article className="habit-card">
@@ -159,6 +242,23 @@ const Dashboard = () => {
               </div>
             </div>
           ))}
+        </article>
+
+        <article className="pulse-card">
+          <h4>Execution Pulse</h4>
+          <div className="pulse-row">
+            <span>Tasks</span>
+            <div className="mini-track"><div style={{ width: `${completionPct}%` }} /></div>
+          </div>
+          <div className="pulse-row">
+            <span>Habits</span>
+            <div className="mini-track"><div style={{ width: `${habitsPct}%` }} /></div>
+          </div>
+          <div className="pulse-row">
+            <span>Area floor</span>
+            <div className="mini-track"><div style={{ width: `${weakestArea.score}%` }} /></div>
+          </div>
+          <p className="pulse-caption">Low area now at {animatedWeakest}% in {weakestArea.name}</p>
         </article>
       </section>
     </div>

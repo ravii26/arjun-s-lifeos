@@ -4,12 +4,67 @@
   gap: 16px;
 }
 
+.learn-snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.learn-snapshot-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: 12px;
+  animation: rise-in 0.4s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+.learn-snapshot-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+}
+
+.learn-snapshot-card small {
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 11px;
+}
+
+.learn-snapshot-card strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 24px;
+}
+
+.learn-snapshot-card span {
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 12px;
+}
+
 .learn-tabs {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
+    .learn-snapshot-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 .tab-btn {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -42,6 +97,7 @@
   background: var(--surface-raised);
   border-radius: var(--radius-xl);
   padding: 16px;
+  animation: rise-in 0.45s ease;
 }
 
 .course-thumb {
@@ -98,6 +154,7 @@
 
 .progress-track > div {
   height: 100%;
+  transition: width 0.55s ease;
 }
 
 .mono-caption,
@@ -225,6 +282,12 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.course-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
 }
 
 .course-item h5,
@@ -346,6 +409,7 @@
 
 .skill-track > div {
   height: 100%;
+  transition: width 0.55s ease;
 }
 
 .notes-masonry {
@@ -361,6 +425,12 @@
   padding: 12px;
   margin-bottom: 10px;
   cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.note-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
 }
 
 .note-card p {
@@ -429,6 +499,12 @@
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 12px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.resource-row:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
 }
 
 .resource-old {

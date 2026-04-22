@@ -8,6 +8,46 @@
   padding: 16px;
 }
 
+.vault-snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.vault-snapshot-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  padding: 12px;
+  animation: rise-in 0.4s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.vault-snapshot-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+}
+
+.vault-snapshot-card small {
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 11px;
+}
+
+.vault-snapshot-card strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 24px;
+}
+
+.vault-snapshot-card span {
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 12px;
+}
+
 .vault-head {
   display: flex;
   justify-content: space-between;
@@ -121,6 +161,7 @@
   padding: 16px;
   cursor: pointer;
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  animation: rise-in 0.4s ease;
 }
 
 .vault-card:hover {
@@ -231,6 +272,7 @@
 .bar-track > div {
   height: 100%;
   background: var(--teal);
+  transition: width 0.55s ease;
 }
 
 .vault-empty {
@@ -348,6 +390,18 @@
   background: color-mix(in srgb, #f0bf5d 18%, var(--surface));
 }
 
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .vault-trigger-wrap {
   display: grid;
   place-items: center;
@@ -462,6 +516,10 @@
 }
 
 @media (max-width: 920px) {
+  .vault-snapshot-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .vault-items.grid,
   .insight-grid {
     grid-template-columns: 1fr;
@@ -483,5 +541,16 @@
     border-radius: 24px 24px 0 0;
     height: auto;
     max-height: 90vh;
+  }
+}
+
+@media (max-width: 640px) {
+  .vault-snapshot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .vault-head,
+  .filter-bar {
+    flex-direction: column;
   }
 }

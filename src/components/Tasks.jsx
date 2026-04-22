@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import '../styles/design-system.css';
 import './Tasks.css';
 
@@ -7,6 +7,36 @@ const AREA_COLORS = {
   Health: 'var(--teal)',
   Mind: 'var(--purple)',
   Finance: 'var(--accent)',
+};
+
+const useCountUp = (target, duration = 550) => {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    const endValue = Number.isFinite(target) ? target : 0;
+    let frame = null;
+
+    if (endValue <= 0) {
+      setValue(0);
+      return undefined;
+    }
+
+    const start = performance.now();
+
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      setValue(Math.round(endValue * progress));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [target, duration]);
+
+  return value;
 };
 
 const Tasks = () => {
@@ -29,16 +59,28 @@ const Tasks = () => {
 
   const completed = todayTasks.filter((task) => task.done).length;
   const progress = Math.round((completed / todayTasks.length) * 100);
+  const remaining = todayTasks.length - completed;
+  const backlogCount = backlogTasks.length;
+  const missedCount = missedTasks.length;
 
   const topPriority = useMemo(() => {
     return todayTasks.find((task) => !task.done && task.priority === 'P1') || todayTasks.find((task) => !task.done) || null;
   }, [todayTasks]);
+
+  const animatedProgress = useCountUp(progress, 650);
+  const animatedCompleted = useCountUp(completed, 650);
+  const animatedRemaining = useCountUp(remaining, 650);
 
   const addTask = () => {
     if (!newTask.title.trim()) return;
     setTodayTasks((prev) => [...prev, { ...newTask, id: Date.now(), done: false }]);
     setNewTask({ title: '', area: 'Career', priority: 'P2', type: 'Boolean' });
     setQuickOpen(false);
+  };
+
+  const markTopPriorityDone = () => {
+    if (!topPriority) return;
+    setTodayTasks((prev) => prev.map((task) => (task.id === topPriority.id ? { ...task, done: true } : task)));
   };
 
   const renderTaskRow = (task, options = {}) => (
@@ -68,13 +110,40 @@ const Tasks = () => {
       <section className="tasks-main">
         <header className="tasks-head">
           <h1>Tasks</h1>
-          <p>{completed}/{todayTasks.length} done today · {progress}% complete</p>
+          <p>{animatedCompleted}/{todayTasks.length} done today · {animatedProgress}% complete</p>
         </header>
+
+        <div className="tasks-snapshot-grid">
+          <article className="tasks-snapshot-card">
+            <small>Done</small>
+            <strong>{animatedCompleted}</strong>
+            <span>today</span>
+          </article>
+          <article className="tasks-snapshot-card">
+            <small>Remaining</small>
+            <strong>{animatedRemaining}</strong>
+            <span>open tasks</span>
+          </article>
+          <article className="tasks-snapshot-card">
+            <small>Backlog</small>
+            <strong>{backlogCount}</strong>
+            <span>queued</span>
+          </article>
+          <article className="tasks-snapshot-card">
+            <small>Missed</small>
+            <strong>{missedCount}</strong>
+            <span>needs review</span>
+          </article>
+        </div>
 
         <article className="focus-card">
           <small>TOP PRIORITY</small>
           <h3>{topPriority ? topPriority.title : 'No pending tasks'}</h3>
           <div className="progress-track"><div style={{ width: `${progress}%` }} /></div>
+          <div className="focus-actions">
+            <button className="btn accent" onClick={markTopPriorityDone} disabled={!topPriority}>Mark done</button>
+            <button className="btn ghost" onClick={() => topPriority && setBacklogTasks((prev) => [...prev, { ...topPriority, id: Date.now(), done: false }])} disabled={!topPriority}>Defer to backlog</button>
+          </div>
         </article>
 
         <article className="quick-add-card">

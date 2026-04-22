@@ -32,6 +32,7 @@
   border-radius: var(--radius-lg);
   background: var(--surface);
   padding: 12px;
+  animation: rise-in 0.4s ease;
 }
 
 .focus-card {
@@ -64,6 +65,47 @@
 .progress-track > div {
   height: 100%;
   background: var(--accent);
+  transition: width 0.55s ease;
+}
+
+.tasks-snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tasks-snapshot-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  padding: 10px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.tasks-snapshot-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+}
+
+.tasks-snapshot-card small {
+  display: block;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 11px;
+}
+
+.tasks-snapshot-card strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 24px;
+}
+
+.tasks-snapshot-card span {
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 12px;
 }
 
 .quick-grid {
@@ -88,6 +130,13 @@
   grid-column: 1 / -1;
   display: flex;
   gap: 8px;
+}
+
+.focus-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
 }
 
 .btn {
@@ -133,6 +182,16 @@
   grid-template-columns: auto 1fr auto;
   gap: 8px;
   align-items: center;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.task-row:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+}
+
+.task-row:has(input:checked) {
+  background: color-mix(in srgb, var(--teal) 10%, transparent);
 }
 
 .task-row input { accent-color: var(--accent); }
@@ -192,12 +251,38 @@
   align-items: center;
 }
 
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 1020px) {
   .tasks-screen {
     grid-template-columns: 1fr;
   }
 
+  .tasks-snapshot-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .quick-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .tasks-snapshot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .focus-actions {
+    flex-direction: column;
   }
 }

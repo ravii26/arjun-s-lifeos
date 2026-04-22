@@ -4,6 +4,47 @@
   gap: 14px;
 }
 
+.settings-snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.settings-snapshot-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  padding: 12px;
+  animation: rise-in 0.4s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.settings-snapshot-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+}
+
+.settings-snapshot-card small {
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 11px;
+}
+
+.settings-snapshot-card strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 24px;
+}
+
+.settings-snapshot-card span {
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 12px;
+}
+
 .settings-nav {
   position: sticky;
   top: 56px;
@@ -64,6 +105,17 @@
   background: var(--surface);
   min-height: calc(100vh - 92px);
   padding: 16px;
+}
+
+.settings-section,
+.profile-card,
+.areas-table,
+.setting-list,
+.theme-row,
+.usage-chart,
+.shortcuts-table,
+.goal-block {
+  animation: rise-in 0.4s ease;
 }
 
 .settings-section h2 {
@@ -349,6 +401,7 @@
 .bar > div {
   height: 100%;
   background: var(--teal);
+  transition: width 0.55s ease;
 }
 
 .storage-block {
@@ -384,7 +437,23 @@
   font-family: var(--font-ui);
 }
 
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 900px) {
+  .settings-snapshot-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .settings-screen {
     grid-template-columns: 1fr;
   }
@@ -411,5 +480,21 @@
   .usage-row,
   .storage-block {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .settings-snapshot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .name-row {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

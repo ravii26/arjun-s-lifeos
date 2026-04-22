@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import '../styles/design-system.css';
 import './Dump.css';
 
@@ -119,6 +119,35 @@ const prefillByType = (text, type) => {
   return defaults[type];
 };
 
+const useCountUp = (target, duration = 600) => {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    const endValue = Number.isFinite(target) ? target : 0;
+    if (endValue <= 0) {
+      setValue(0);
+      return undefined;
+    }
+
+    let frame = null;
+    const start = performance.now();
+
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      setValue(Math.round(endValue * progress));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [target, duration]);
+
+  return value;
+};
+
 const Dump = () => {
   const [dumpItems, setDumpItems] = useState(initialDumpItems);
   const [input, setInput] = useState('');
@@ -227,6 +256,17 @@ const Dump = () => {
 
   const confidence = selectedItem?.suggestion?.confidence || analyzeDump(selectedItem?.content || '').confidence;
   const reason = selectedItem?.suggestion?.reason || analyzeDump(selectedItem?.content || '').reason;
+
+  const avgConfidence = useMemo(() => {
+    if (!dumpItems.length) return 0;
+    const total = dumpItems.reduce((sum, item) => sum + (item.suggestion?.confidence || 0), 0);
+    return Math.round(total / dumpItems.length);
+  }, [dumpItems]);
+
+  const animatedUnprocessed = useCountUp(unprocessed.length, 600);
+  const animatedProcessed = useCountUp(processed.length, 600);
+  const animatedDrafts = useCountUp(drafts.length, 600);
+  const animatedConfidence = useCountUp(avgConfidence, 600);
 
   const progressLabel = batchMode ? `${Math.min(batchIndex + 1, unprocessed.length)} of ${unprocessed.length} processed` : '';
 
@@ -347,6 +387,29 @@ const Dump = () => {
           <h1>Dump</h1>
           <p>{unprocessed.length} unprocessed · {dumpItems.length} total</p>
         </header>
+
+        <section className="dump-snapshot-grid">
+          <article className="dump-snapshot-card">
+            <small>Unprocessed</small>
+            <strong>{animatedUnprocessed}</strong>
+            <span>items waiting</span>
+          </article>
+          <article className="dump-snapshot-card">
+            <small>Processed</small>
+            <strong>{animatedProcessed}</strong>
+            <span>outputs created</span>
+          </article>
+          <article className="dump-snapshot-card">
+            <small>Drafts</small>
+            <strong>{animatedDrafts}</strong>
+            <span>saved drafts</span>
+          </article>
+          <article className="dump-snapshot-card">
+            <small>Avg confidence</small>
+            <strong>{animatedConfidence}%</strong>
+            <span>suggestion strength</span>
+          </article>
+        </section>
 
         <div className="quick-input-wrap">
           <textarea

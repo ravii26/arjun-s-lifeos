@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import '../styles/design-system.css';
 import './Learn.css';
 
@@ -154,6 +154,35 @@ const calcAgeHours = (isoDate) => {
   return Math.max(1, Math.floor((now - target) / (1000 * 60 * 60)));
 };
 
+const useCountUp = (target, duration = 650) => {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    const endValue = Number.isFinite(target) ? target : 0;
+    if (endValue <= 0) {
+      setValue(0);
+      return undefined;
+    }
+
+    let frame = null;
+    const start = performance.now();
+
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      setValue(Math.round(endValue * progress));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [target, duration]);
+
+  return value;
+};
+
 const skillLabel = (value) => {
   if (value <= 33) return { text: 'Beginner', color: 'var(--red)' };
   if (value <= 66) return { text: 'Intermediate', color: 'var(--orange)' };
@@ -224,6 +253,11 @@ const Learn = () => {
     topicsReviewed: 4,
     coursesActive: courses.filter((course) => course.status === 'Active').length,
   };
+
+  const animatedNotes = useCountUp(stats.notesCreated, 700);
+  const animatedTopics = useCountUp(stats.topicsReviewed, 700);
+  const animatedCourses = useCountUp(stats.coursesActive, 700);
+  const activeProgress = useCountUp(activeCourse.progress, 700);
 
   const createCourse = (event) => {
     event.preventDefault();
@@ -298,7 +332,7 @@ const Learn = () => {
           </div>
           <div className="progress-wrap">
             <div className="progress-track">
-              <div style={{ width: `${activeCourse.progress}%`, background: AREA_COLORS[activeCourse.area] }} />
+              <div style={{ width: `${activeProgress}%`, background: AREA_COLORS[activeCourse.area] }} />
             </div>
             <div className="mono-caption">
               Lesson {activeCourse.lesson} of {activeCourse.totalLessons} · {activeCourse.progress}% complete
@@ -623,6 +657,29 @@ const Learn = () => {
           </button>
         ))}
       </div>
+
+      <section className="learn-snapshot-grid">
+        <article className="learn-snapshot-card">
+          <small>Study time</small>
+          <strong>{stats.studyTime}</strong>
+          <span>This week</span>
+        </article>
+        <article className="learn-snapshot-card">
+          <small>Notes created</small>
+          <strong>{animatedNotes}</strong>
+          <span>captured insights</span>
+        </article>
+        <article className="learn-snapshot-card">
+          <small>Topics reviewed</small>
+          <strong>{animatedTopics}</strong>
+          <span>linked topics</span>
+        </article>
+        <article className="learn-snapshot-card">
+          <small>Active courses</small>
+          <strong>{animatedCourses}</strong>
+          <span>in motion</span>
+        </article>
+      </section>
 
       {activeTab === 'Active Learning' && renderActiveLearning()}
       {activeTab === 'Topics' && renderTopics()}

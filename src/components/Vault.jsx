@@ -122,6 +122,35 @@ const intensityClass = {
   High: 'dot-high',
 };
 
+const useCountUp = (target, duration = 650) => {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    const endValue = Number.isFinite(target) ? target : 0;
+    if (endValue <= 0) {
+      setValue(0);
+      return undefined;
+    }
+
+    let frame = null;
+    const start = performance.now();
+
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      setValue(Math.round(endValue * progress));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [target, duration]);
+
+  return value;
+};
+
 const Vault = () => {
   const [items, setItems] = useState(initialItems);
   const [triggeredMode, setTriggeredMode] = useState(false);
@@ -184,6 +213,14 @@ const Vault = () => {
 
     return { total, used, helpfulPct };
   }, [items]);
+
+  const triggeredItemCount = items.filter((item) => ['low_motivation', 'fear', 'burnout'].includes(item.stateTag)).length;
+  const uniqueTags = new Set(items.flatMap((item) => item.tags)).size;
+
+  const animatedTotal = useCountUp(stats.total, 700);
+  const animatedHelpfulness = useCountUp(stats.helpfulPct, 700);
+  const animatedTriggered = useCountUp(triggeredItemCount, 700);
+  const animatedUniqueTags = useCountUp(uniqueTags, 700);
 
   const topUsed = [...items].sort((a, b) => b.uses - a.uses).slice(0, 3);
 
@@ -426,13 +463,36 @@ const Vault = () => {
         <div>
           <h1>Vault</h1>
           <p>Your personal strength system</p>
-          <span className="mono">{stats.total} items · {stats.used} used · {stats.helpfulPct}% helpful</span>
+          <span className="mono">{animatedTotal} items · {stats.used} used · {animatedHelpfulness}% helpful</span>
         </div>
         <div className="head-actions">
           <button className="secondary" onClick={() => setTriggeredMode(true)}>Simulate trigger</button>
           <button className="vault-primary" onClick={() => setShowCreate(true)}>+ Add</button>
         </div>
       </header>
+
+      <section className="vault-snapshot-grid">
+        <article className="vault-snapshot-card">
+          <small>Total items</small>
+          <strong>{animatedTotal}</strong>
+          <span>stored in your vault</span>
+        </article>
+        <article className="vault-snapshot-card">
+          <small>Helpful rate</small>
+          <strong>{animatedHelpfulness}%</strong>
+          <span>average usefulness</span>
+        </article>
+        <article className="vault-snapshot-card">
+          <small>Trigger-ready</small>
+          <strong>{animatedTriggered}</strong>
+          <span>items mapped to states</span>
+        </article>
+        <article className="vault-snapshot-card">
+          <small>Unique tags</small>
+          <strong>{animatedUniqueTags}</strong>
+          <span>active themes</span>
+        </article>
+      </section>
 
       <div className="filter-bar">
         <div className="tag-scroll">
