@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { BottomSheet } from "../components/BottomSheet";
 import { useAppContext } from "../context/AppContext";
+import { formatMonthDay, getDayDifference, getTodayDateKey } from "../lib/date";
 
 export const TopicPage = () => {
   const { id } = useParams();
@@ -12,10 +13,12 @@ export const TopicPage = () => {
 
   const topic = state.topics.find((item) => item.id === id);
   const links = state.topicLinks.filter((item) => item.topicId === id);
-  const relatedNotes = state.learnNotes.filter((note) =>
-    links.some((link) => link.label.toLowerCase().includes(note.title.slice(0, 8).toLowerCase())),
+  const topicPage = state.topicPages.find((item) => item.topicId === id);
+  const relatedNotes = state.learnNotes.filter(
+    (note) => (note.topicIds ?? []).includes(id ?? "") || topicPage?.linkedNoteIds.includes(note.id),
   );
   const relatedNotebook = state.notebookEntries.filter((entry) => entry.topicIds.includes(id ?? ""));
+  const dueNotesCount = relatedNotes.filter((note) => note.reviewDueDate && getDayDifference(getTodayDateKey(), note.reviewDueDate) <= 0).length;
 
   const chartPath = useMemo(() => {
     const points = links.slice(0, 6).map((link, index) => {
@@ -30,7 +33,7 @@ export const TopicPage = () => {
     return (
       <section className="card-base">
         <p className="text-[14px] text-[var(--text-2)]">Topic not found.</p>
-        <button type="button" onClick={() => navigate("/learn?tab=notes")} className="mt-3 text-[13px] text-[var(--primary)]">
+        <button type="button" onClick={() => navigate("/knowledge?tab=notes")} className="mt-3 text-[13px] text-[var(--primary)]">
           Back to Learn
         </button>
       </section>
@@ -56,6 +59,20 @@ export const TopicPage = () => {
       <section className="card-base">
         <p className="text-page-title text-[var(--text-1)]">{topic.title}</p>
         <p className="mt-2 text-[13px] leading-[1.7] text-[var(--text-2)]">{topic.summary}</p>
+        <div className="mt-4 grid grid-cols-3 gap-2 text-[12px]">
+          <div className="rounded-[12px] bg-[var(--s2)] px-3 py-3">
+            <p className="text-[var(--text-3)]">Notes</p>
+            <p className="mt-1 text-[18px] font-medium text-[var(--text-1)]">{relatedNotes.length}</p>
+          </div>
+          <div className="rounded-[12px] bg-[var(--s2)] px-3 py-3">
+            <p className="text-[var(--text-3)]">Due reviews</p>
+            <p className="mt-1 text-[18px] font-medium text-[var(--text-1)]">{dueNotesCount}</p>
+          </div>
+          <div className="rounded-[12px] bg-[var(--s2)] px-3 py-3">
+            <p className="text-[var(--text-3)]">Notebook</p>
+            <p className="mt-1 text-[18px] font-medium text-[var(--text-1)]">{relatedNotebook.length}</p>
+          </div>
+        </div>
       </section>
 
       <section className="rounded-[14px] border border-[var(--border)] bg-[var(--s1)] p-4">
@@ -92,7 +109,7 @@ export const TopicPage = () => {
           <button
             type="button"
             className="tap-scale rounded-[10px] border border-[var(--border)] bg-[var(--s1)] px-3 py-2 text-[12px] text-[var(--primary)]"
-            onClick={() => navigate("/learn?tab=notes")}
+            onClick={() => navigate("/knowledge?tab=notes")}
           >
             Open Learn notes
           </button>
@@ -100,7 +117,14 @@ export const TopicPage = () => {
         {relatedNotes.length === 0 ? <p className="text-[12px] text-[var(--text-3)]">No linked notes yet.</p> : null}
         {relatedNotes.slice(0, 4).map((note) => (
           <div key={note.id} className="rounded-[12px] border border-[var(--border)] bg-[var(--s1)] p-3">
-            <p className="text-[13px] font-medium text-[var(--text-1)]">{note.title}</p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[13px] font-medium text-[var(--text-1)]">{note.title}</p>
+              {note.reviewDueDate ? (
+                <span className="rounded-full bg-[var(--s2)] px-2 py-1 text-[11px] text-[var(--text-2)]">
+                  {getDayDifference(getTodayDateKey(), note.reviewDueDate) <= 0 ? "Review now" : `Review ${formatMonthDay(note.reviewDueDate)}`}
+                </span>
+              ) : null}
+            </div>
             <p className="mt-1 text-[12px] text-[var(--text-3)]">{note.preview}</p>
           </div>
         ))}
@@ -126,7 +150,7 @@ export const TopicPage = () => {
           <Sparkles size={14} strokeWidth={1.5} />
           AI observation
         </div>
-        <p className="mt-2 text-[13px] italic text-[var(--text-2)]">Your strongest insights stick when notebook notes are connected to one explicit topic map.</p>
+        <p className="mt-2 text-[13px] italic text-[var(--text-2)]">Your strongest insights stick when notebook notes connect to one topic map and come back for review before they go stale.</p>
       </section>
 
       <BottomSheet open={Boolean(selectedEntry)} onClose={() => setSelectedEntryId(null)}>
@@ -141,7 +165,7 @@ export const TopicPage = () => {
               onClick={() => {
                 dispatch({ type: "CONVERT_NOTEBOOK_TO_NOTE", payload: { entryId: selectedEntry.id } });
                 setSelectedEntryId(null);
-                navigate("/learn?tab=notes");
+                navigate("/knowledge?tab=notes");
               }}
             >
               <NotebookPen size={16} strokeWidth={1.5} />

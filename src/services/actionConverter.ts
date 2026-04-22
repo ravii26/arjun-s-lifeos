@@ -63,53 +63,5 @@ export const convertToAction = async (input: string): Promise<ActionConverterRes
     };
   }
 
-  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY as string | undefined;
-  if (!apiKey) {
-    return fallbackConvert(trimmed);
-  }
-
-  try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-3-haiku-20240307",
-        max_tokens: 220,
-        temperature: 0.3,
-        messages: [
-          {
-            role: "user",
-            content:
-              `Convert this vague thought into one concrete action task. Return strict JSON with keys output, area, priority. ` +
-              `area must be one of career,health,mind,finance,relationships,creative. priority must be P1/P2/P3. Input: ${trimmed}`,
-          },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      return fallbackConvert(trimmed);
-    }
-
-    const payload = (await response.json()) as { content?: Array<{ text?: string }> };
-    const text = payload.content?.[0]?.text?.trim() ?? "";
-    const parsed = JSON.parse(text) as { output?: string; area?: ActionConverterResult["area"]; priority?: ActionConverterResult["priority"] };
-
-    if (!parsed.output || !parsed.area || !parsed.priority) {
-      return fallbackConvert(trimmed);
-    }
-
-    return {
-      output: parsed.output,
-      area: parsed.area,
-      priority: parsed.priority,
-      source: "api",
-    };
-  } catch {
-    return fallbackConvert(trimmed);
-  }
+  return fallbackConvert(trimmed);
 };

@@ -1,7 +1,9 @@
 import { Check, Lock, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AIInsightCard } from "../components/AIInsightCard";
 import { useAppContext } from "../context/AppContext";
+import { insightCatalog } from "../data/insights";
 
 const scoreColor = (score: number): string => {
   if (score >= 65) return "var(--teal)";
@@ -83,6 +85,20 @@ export const Review = () => {
           </button>
         ))}
       </section>
+
+      <AIInsightCard
+        screenId="review"
+        insights={insightCatalog.review}
+        onAskCoach={(insight) => {
+          window.dispatchEvent(
+            new CustomEvent("lifeos:open-coach", {
+              detail: {
+                message: `I was looking at review and saw: ${insight}. Can you explain more?`,
+              },
+            }),
+          );
+        }}
+      />
 
       <section className="space-y-2">
         <p className="text-section text-[var(--text-1)]">Habits this week</p>

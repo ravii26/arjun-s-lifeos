@@ -8,7 +8,9 @@ import {
   Trophy,
   Sparkles,
 } from "lucide-react";
+import { AIInsightCard } from "../components/AIInsightCard";
 import { useAppContext } from "../context/AppContext";
+import { insightCatalog } from "../data/insights";
 import { VaultItem } from "../data/types";
 
 type VaultDraftType = "Quote" | "Video" | "Note" | "Win" | "Memory" | "Reset";
@@ -289,6 +291,22 @@ export const Vault = () => {
         >
           I need this right now →
         </button>
+
+        <div className="mt-4">
+          <AIInsightCard
+            screenId="vault"
+            insights={insightCatalog.vault}
+            onAskCoach={(insight) => {
+              window.dispatchEvent(
+                new CustomEvent("lifeos:open-coach", {
+                  detail: {
+                    message: `I was looking at vault and saw: ${insight}. Can you explain more?`,
+                  },
+                }),
+              );
+            }}
+          />
+        </div>
       </section>
 
       <section className="space-y-3">

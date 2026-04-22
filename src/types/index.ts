@@ -1,57 +1,16 @@
-import type { AppState as BaseAppState, Habit, Task, VaultItem } from "../data/types";
+import type {
+  ActionConversion,
+  AppState,
+  CoachMessage,
+  DumpItem,
+  Habit,
+  Task,
+  TimeTrackerSession,
+  VaultDeliveryLog,
+  VaultItem,
+} from "../data/types";
 
-export type AreaId = BaseAppState["areas"][number]["id"];
-
-export interface DumpItem {
-  id: string;
-  content: string;
-  createdAt: string;
-  processed: boolean;
-  processingResult?: {
-    suggestedType: string;
-    areaId: string;
-    reasoning: string;
-    accepted: boolean;
-  };
-}
-
-export interface VaultDeliveryLog {
-  id: string;
-  vaultItemId: string;
-  triggeredBy: "emergency" | "auto-score" | "auto-habit" | "auto-rating";
-  triggerDetail: string;
-  response: "helped" | "skipped" | "another";
-  deliveredAt: string;
-}
-
-export interface CoachMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp: string;
-  screenContext?: string;
-}
-
-export interface TimeTrackerSession {
-  id: string;
-  linkedTaskId?: string;
-  linkedHabitId?: string;
-  linkedCourseId?: string;
-  areaId?: AreaId;
-  label: string;
-  startedAt: string;
-  endedAt?: string;
-  durationSec: number;
-}
-
-export interface ActionConversion {
-  id: string;
-  input: string;
-  output: string;
-  areaId: AreaId;
-  priority: Task["priority"];
-  createdAt: string;
-}
+export type AreaId = AppState["areas"][number]["id"];
 
 export interface UpgradedVaultItem extends VaultItem {
   aiContext?: {
@@ -62,14 +21,7 @@ export interface UpgradedVaultItem extends VaultItem {
   };
 }
 
-export interface FinalAppState extends BaseAppState {
-  dumpItems: DumpItem[];
-  vaultDeliveryLog: VaultDeliveryLog[];
-  coachMessages: CoachMessage[];
-  timeTrackerSessions: TimeTrackerSession[];
-  activeTrackerSessionId: string | null;
-  vaultItems: UpgradedVaultItem[];
-}
+export type FinalAppState = AppState;
 
 export type TimeTrackerSessionStart = {
   id: string;

@@ -1,22 +1,32 @@
 import { Sparkles, X } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AIInsightCard } from "../components/AIInsightCard";
 import { AreaCard } from "../components/AreaCard";
 import { HabitRow } from "../components/HabitRow";
 import { TaskCard } from "../components/TaskCard";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { useAppContext } from "../context/AppContext";
-import { aiBriefing, todayTaskIds } from "../data/seed";
+import { insightCatalog } from "../data/insights";
+import { aiBriefing } from "../data/seed";
+import { getTodayDateKey } from "../lib/date";
 
 export const Dashboard = () => {
   const { state, dispatch } = useAppContext();
   const navigate = useNavigate();
   const [morningLocalDismiss, setMorningLocalDismiss] = useState(false);
   const [eveningNote, setEveningNote] = useState(state.eveningCheckIn.note);
+  const todayKey = getTodayDateKey();
 
-  const todayTasks = todayTaskIds
-    .map((id) => state.tasks.find((task) => task.id === id))
-    .filter((task): task is NonNullable<typeof task> => Boolean(task));
+  const todayTasks = useMemo(() => {
+    const blockTaskIds = new Set(
+      state.timeBlocks
+        .filter((block) => block.date === todayKey && block.linkedTaskId)
+        .map((block) => block.linkedTaskId as string),
+    );
+
+    return state.tasks.filter((task) => task.scheduledDate === todayKey || blockTaskIds.has(task.id));
+  }, [state.tasks, state.timeBlocks, todayKey]);
 
   const doneTasks = todayTasks.filter((task) => task.done).length;
   const doneHabits = state.habits.filter((habit) => habit.lastSevenDays[6] === "done").length;
@@ -46,8 +56,22 @@ export const Dashboard = () => {
           <p className="text-caption text-[var(--text-3)]">Today&apos;s briefing</p>
         </div>
         <p className="mt-3 text-ai leading-[1.6] text-[var(--text-2)]">{aiBriefing}</p>
-        <p className="mt-3 text-caption text-[var(--text-3)]">Day 47 · Week 7</p>
+        <p className="mt-3 text-caption text-[var(--text-3)]">Day 47 - Week 7</p>
       </section>
+
+      <AIInsightCard
+        screenId="dashboard"
+        insights={insightCatalog.dashboard}
+        onAskCoach={(insight) => {
+          window.dispatchEvent(
+            new CustomEvent("lifeos:open-coach", {
+              detail: {
+                message: `I was looking at dashboard and saw: ${insight}. Can you explain more?`,
+              },
+            }),
+          );
+        }}
+      />
 
       {showMorning ? (
         <section className="rounded-[14px] border border-[var(--border)] bg-[var(--s2)] px-5 py-4" style={{ borderLeft: "3px solid var(--primary)" }}>
@@ -190,7 +214,7 @@ export const Dashboard = () => {
 
           {(state.eveningCheckIn.rating ?? 0) <= 2 && state.eveningCheckIn.rating !== null ? (
             <div className="mt-3 rounded-[12px] border border-[var(--border)] bg-[var(--s1)] px-3 py-3">
-              <p className="text-[13px] italic text-[var(--text-2)]">Your vault has something for hard days →</p>
+              <p className="text-[13px] italic text-[var(--text-2)]">Your vault has something for hard days -&gt;</p>
               <button
                 type="button"
                 className="tap-scale mt-2 rounded-[8px] border border-[var(--border)] px-3 py-2 text-[12px] text-[var(--primary)]"
@@ -213,7 +237,9 @@ export const Dashboard = () => {
           <p className="text-[11px] font-normal text-[var(--text-3)]">Best streak</p>
         </article>
         <article className="flex-1 rounded-[10px] border border-[var(--border)] bg-[var(--s2)] px-4 py-3">
-          <p className="text-[20px] font-medium text-[var(--amber)]">{doneTasks}/3 done</p>
+          <p className="text-[20px] font-medium text-[var(--amber)]">
+            {doneTasks}/{todayTasks.length || 0} done
+          </p>
           <p className="text-[11px] font-normal text-[var(--text-3)]">Tasks today</p>
         </article>
       </section>
@@ -221,14 +247,14 @@ export const Dashboard = () => {
       <section className="space-y-2">
         {allDone ? (
           <div className="rounded-[14px] bg-[var(--teal)] px-4 py-4 text-white">
-            <p className="text-[16px] font-medium">All done today 🎯</p>
+            <p className="text-[16px] font-medium">All done today</p>
             <p className="mt-1 text-[12px] font-normal">Strong execution. Protect your shutdown and recover well.</p>
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between">
               <p className="text-section text-[var(--text-1)]">Today&apos;s tasks</p>
-              <p className="text-caption text-[var(--text-3)]">{doneTasks} of 3 done</p>
+              <p className="text-caption text-[var(--text-3)]">{doneTasks} of {todayTasks.length} done</p>
             </div>
             {todayTasks.map((task) => {
               const area = state.areas.find((entry) => entry.id === task.areaId);
@@ -306,9 +332,10 @@ export const Dashboard = () => {
           </p>
           <button
             type="button"
+            onClick={() => navigate("/vault")}
             className="tap-scale mt-3 rounded-[10px] border border-[var(--border)] bg-transparent px-3 py-2 text-[13px] font-normal text-[var(--primary)]"
           >
-            Open Vault →
+            Open Vault -&gt;
           </button>
         </section>
       ) : null}
@@ -323,7 +350,7 @@ export const Dashboard = () => {
           </div>
           <button
             type="button"
-            onClick={() => navigate("/learn?tab=resources")}
+            onClick={() => navigate("/knowledge?tab=resources")}
             className="tap-scale mt-3 rounded-[10px] border border-[var(--border)] bg-[var(--s1)] px-3 py-2 text-[13px] font-normal text-[var(--text-1)]"
           >
             Open resources

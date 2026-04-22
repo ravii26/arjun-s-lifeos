@@ -7,6 +7,8 @@ import { AreaDetails } from "./screens/AreaDetails";
 import { PlaceholderPage } from "./screens/PlaceholderPage";
 import { Vault } from "./screens/Vault";
 import { Learn } from "./screens/Learn";
+import { Skills } from "./screens/Skills";
+import { Settings } from "./screens/Settings";
 import { Review } from "./screens/Review";
 import { TopicPage } from "./screens/TopicPage";
 import { Statistics } from "./screens/Statistics";
@@ -21,7 +23,10 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/focus" element={<Focus />} />
           <Route path="/vault" element={<Vault />} />
-          <Route path="/learn" element={<Learn />} />
+          <Route path="/skills" element={<Skills />} />
+          <Route path="/knowledge" element={<Learn />} />
+          <Route path="/learn" element={<Navigate to="/knowledge" replace />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="/review" element={<Review />} />
           <Route path="/statistics" element={<Statistics />} />
           <Route path="/topics/:id" element={<TopicPage />} />

@@ -1,39 +1,67 @@
 import { FormEvent, useMemo, useState } from "react";
 import { Plus, Sparkles } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { AIInsightCard } from "../components/AIInsightCard";
 import { HabitRow } from "../components/HabitRow";
 import { TaskCard } from "../components/TaskCard";
-import { BottomSheet } from "../components/BottomSheet";
 import { HabitDetailSheet } from "../components/HabitDetailSheet";
 import { TaskDetailSheet } from "../components/TaskDetailSheet";
+import { FocusCalendar } from "../components/FocusCalendar";
 import { useAppContext } from "../context/AppContext";
-import { Habit, Task } from "../data/types";
-import { todayTaskIds } from "../data/seed";
+import { Habit, Task, TrackingType } from "../data/types";
+import { insightCatalog } from "../data/insights";
+import { formatMonthDay, getTodayDateKey } from "../lib/date";
 
 type FocusTab = "today" | "backlog" | "calendar";
 type Priority = Task["priority"];
-const activeDate = "2026-04-16";
+type DraftEntityType = "task" | "habit";
+
+const VALID_TABS: FocusTab[] = ["today", "backlog", "calendar"];
 
 export const Focus = () => {
   const { state, dispatch } = useAppContext();
-  const [tab, setTab] = useState<FocusTab>("today");
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showSheet, setShowSheet] = useState(false);
+  const [draftEntityType, setDraftEntityType] = useState<DraftEntityType>("task");
   const [title, setTitle] = useState("");
   const [selectedArea, setSelectedArea] = useState("career");
   const [priority, setPriority] = useState<Priority>("P1");
   const [estimateMin, setEstimateMin] = useState<string>("");
+  const [trackingType, setTrackingType] = useState<TrackingType>("boolean");
+  const [trackingUnit, setTrackingUnit] = useState<string>("");
+  const [trackingTarget, setTrackingTarget] = useState<string>("");
   const [newTaskIds, setNewTaskIds] = useState<string[]>([]);
   const [reasonOpen, setReasonOpen] = useState<Record<string, boolean>>({});
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [activeHabit, setActiveHabit] = useState<Habit | null>(null);
-  const [showBlockSheet, setShowBlockSheet] = useState(false);
-  const [blockTitle, setBlockTitle] = useState("");
-  const [blockArea, setBlockArea] = useState("career");
-  const [blockStart, setBlockStart] = useState("09");
-  const [blockDuration, setBlockDuration] = useState("1");
+  const activeDate = getTodayDateKey();
+  const tabParam = searchParams.get("tab");
+  const tab = VALID_TABS.includes(tabParam as FocusTab) ? (tabParam as FocusTab) : "today";
 
-  const todayTasks = todayTaskIds
-    .map((id) => state.tasks.find((task) => task.id === id))
-    .filter((task): task is NonNullable<typeof task> => Boolean(task));
+  const setTab = (nextTab: FocusTab) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextTab === "today") {
+      nextParams.delete("tab");
+    } else {
+      nextParams.set("tab", nextTab);
+    }
+    setSearchParams(nextParams, { replace: true });
+  };
+
+  const todayBlockTaskIds = useMemo(
+    () =>
+      new Set(
+        state.timeBlocks
+          .filter((block) => block.date === activeDate && block.linkedTaskId)
+          .map((block) => block.linkedTaskId as string),
+      ),
+    [activeDate, state.timeBlocks],
+  );
+
+  const todayTasks = useMemo(
+    () => state.tasks.filter((task) => task.scheduledDate === activeDate || todayBlockTaskIds.has(task.id)),
+    [activeDate, state.tasks, todayBlockTaskIds],
+  );
 
   const doneTasks = todayTasks.filter((task) => task.done).length;
 
@@ -92,38 +120,41 @@ export const Focus = () => {
     });
   };
 
-  const addManualBlock = (event: FormEvent) => {
-    event.preventDefault();
-    const title = blockTitle.trim();
-    if (!title) return;
-    const start = Number(blockStart);
-    const duration = Number(blockDuration);
-    const end = Math.min(start + Math.max(duration, 1), 23);
-
-    dispatch({
-      type: "ADD_TIME_BLOCK",
-      payload: {
-        block: {
-          id: `tb-${Date.now()}`,
-          date: activeDate,
-          title,
-          areaId: blockArea,
-          startHour: start,
-          endHour: end,
-          status: "planned",
-        },
-      },
-    });
-
-    setBlockTitle("");
-    setShowBlockSheet(false);
-  };
-
-  const openSheet = (defaultArea?: string) => {
+  const openSheet = (defaultArea?: string, entityType: DraftEntityType = "task") => {
     if (defaultArea) {
       setSelectedArea(defaultArea);
     }
+    setDraftEntityType(entityType);
     setShowSheet(true);
+  };
+
+  const resetDraft = () => {
+    setTitle("");
+    setEstimateMin("");
+    setTrackingType("boolean");
+    setTrackingUnit("");
+    setTrackingTarget("");
+    setSelectedArea("career");
+    setPriority("P1");
+    setDraftEntityType("task");
+  };
+
+  const buildTrackingConfig = () => ({
+    unit: trackingUnit.trim() || undefined,
+    targetValue: trackingTarget ? Number(trackingTarget) : undefined,
+  });
+
+  const buildTrackingData = () => {
+    if (trackingType === "boolean") {
+      return { completed: false };
+    }
+    if (trackingType === "timer") {
+      return { durationSec: 0 };
+    }
+    if (trackingType === "count" || trackingType === "progress") {
+      return { value: 0 };
+    }
+    return { note: "", completed: false };
   };
 
   const submitTask = (event: FormEvent) => {
@@ -131,28 +162,54 @@ export const Focus = () => {
     const trimmed = title.trim();
     if (!trimmed) return;
 
+    if (draftEntityType === "habit") {
+      const habit: Habit = {
+        id: `h${Date.now()}`,
+        name: trimmed,
+        areaId: selectedArea,
+        trackingType,
+        trackingConfig: buildTrackingConfig(),
+        trackingData: buildTrackingData(),
+        streak: 0,
+        bestStreak: 0,
+        lastSevenDays: ["pending", "pending", "pending", "pending", "pending", "pending", "pending"],
+        logs: [],
+        createdAt: new Date().toISOString(),
+      };
+
+      dispatch({ type: "ADD_HABIT", payload: { habit } });
+      setShowSheet(false);
+      resetDraft();
+      return;
+    }
+
     const task: Task = {
       id: `t${Date.now()}`,
       title: trimmed,
       areaId: selectedArea,
       priority,
+      status: "pending",
+      date: activeDate,
+      trackingType,
+      trackingConfig: buildTrackingConfig(),
+      trackingData: buildTrackingData(),
+      linkedSessionIds: [],
+      createdAt: new Date().toISOString(),
       done: false,
       estimateMin: estimateMin ? Number(estimateMin) : undefined,
+      scheduledDate: activeDate,
     };
 
     dispatch({ type: "ADD_TASK", payload: { task } });
     setNewTaskIds((current) => [...current, task.id]);
-    setTitle("");
-    setEstimateMin("");
-    setSelectedArea("career");
-    setPriority("P1");
     setShowSheet(false);
+    resetDraft();
   };
 
   return (
     <div className="space-y-4">
       <div className="inline-flex rounded-full border border-[var(--border)] bg-[var(--s2)] p-1">
-        {(["today", "backlog", "calendar"] as FocusTab[]).map((entry) => (
+        {VALID_TABS.map((entry) => (
           <button
             key={entry}
             type="button"
@@ -163,16 +220,30 @@ export const Focus = () => {
                 : "bg-transparent font-normal text-[var(--text-3)]"
             }`}
           >
-              {entry === "today" ? "Today" : entry === "backlog" ? "Backlog" : "Calendar"}
+            {entry === "today" ? "Today" : entry === "backlog" ? "Backlog" : "Calendar"}
           </button>
         ))}
       </div>
+
+      <AIInsightCard
+        screenId={`focus-${tab}`}
+        insights={tab === "calendar" ? insightCatalog.focusCalendar : insightCatalog.focusToday}
+        onAskCoach={(insight) => {
+          window.dispatchEvent(
+            new CustomEvent("lifeos:open-coach", {
+              detail: {
+                message: `I was looking at focus and saw: ${insight}. Can you explain more?`,
+              },
+            }),
+          );
+        }}
+      />
 
       {tab === "today" ? (
         <div className="space-y-4">
           <header className="flex items-end justify-between">
             <h1 className="text-page-title text-[var(--text-1)]">Focus</h1>
-            <p className="text-[13px] font-normal text-[var(--text-2)]">April 16</p>
+            <p className="text-[13px] font-normal text-[var(--text-2)]">{formatMonthDay(activeDate)}</p>
           </header>
 
           <section className="space-y-2">
@@ -183,7 +254,6 @@ export const Focus = () => {
               return (
                 <div key={task.id}>
                   <TaskCard
-                    key={task.id}
                     task={task}
                     area={area}
                     onToggle={() => dispatch({ type: "TOGGLE_TASK", payload: { taskId: task.id } })}
@@ -204,7 +274,7 @@ export const Focus = () => {
                 <div className="h-1 rounded-[14px] bg-[var(--teal)]" style={{ width: `${(12 / 30) * 100}%` }} />
               </div>
             </div>
-            <p className="text-caption text-[var(--text-3)]">{doneTasks} of 3 done</p>
+            <p className="text-caption text-[var(--text-3)]">{doneTasks} of {todayTasks.length} done</p>
           </section>
 
           <section className="space-y-2">
@@ -322,15 +392,17 @@ export const Focus = () => {
                 </div>
                 <div className="rounded-[14px] border border-[var(--border)] bg-[var(--s1)] px-2 py-1">
                   {tasks.map((task) => (
-                    <div
+                    <button
                       key={task.id}
+                      type="button"
                       className={`flex items-center justify-between rounded-[10px] px-3 py-2 text-[13px] font-normal text-[var(--text-2)] ${
                         newTaskIds.includes(task.id) ? "animate-fade-in-up" : ""
                       }`}
+                      onClick={() => setActiveTask(task)}
                     >
-                      <span>{task.title}</span>
+                      <span className="text-left">{task.title}</span>
                       <span className="text-[11px] text-[var(--text-3)]">{task.priority}</span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -338,72 +410,7 @@ export const Focus = () => {
           </section>
         </div>
       ) : (
-        <div className="space-y-4 pb-20">
-          <section className="rounded-[14px] border border-[var(--border)] bg-[var(--s2)] p-4">
-            <p className="text-[14px] font-medium text-[var(--text-1)]">Weekly grid</p>
-            <div className="mt-3 grid grid-cols-7 gap-2 text-center text-[11px]">
-              {[
-                { day: "M", d: 14 },
-                { day: "T", d: 15 },
-                { day: "W", d: 16 },
-                { day: "T", d: 17 },
-                { day: "F", d: 18 },
-                { day: "S", d: 19 },
-                { day: "S", d: 20 },
-              ].map((cell) => (
-                <div
-                  key={`${cell.day}-${cell.d}`}
-                  className="rounded-[10px] border border-[var(--border)] px-2 py-3"
-                  style={{ background: cell.d === 16 ? "var(--primary-muted)" : "var(--s1)", color: cell.d === 16 ? "var(--primary)" : "var(--text-3)" }}
-                >
-                  <p>{cell.day}</p>
-                  <p className="mt-1 text-[12px]">{cell.d}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-section text-[var(--text-1)]">Time blocks</p>
-              <button
-                type="button"
-                className="tap-scale rounded-[10px] border border-[var(--border)] bg-[var(--s1)] px-3 py-2 text-[12px] text-[var(--primary)]"
-                onClick={() => setShowBlockSheet(true)}
-              >
-                Add block
-              </button>
-            </div>
-            {todayBlocks.length === 0 ? <p className="text-[12px] text-[var(--text-3)]">No blocks scheduled today.</p> : null}
-            {todayBlocks.map((block) => {
-              const area = state.areas.find((item) => item.id === block.areaId);
-              return (
-                <div
-                  key={block.id}
-                  className="rounded-[12px] border border-[var(--border)] bg-[var(--s1)] px-3 py-3"
-                  style={{ borderLeft: `3px solid ${area?.color ?? "var(--primary)"}` }}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[13px] font-medium text-[var(--text-1)]">{block.title}</p>
-                    <span className="text-[11px] text-[var(--text-3)]">{`${block.startHour}:00 - ${block.endHour}:00`}</span>
-                  </div>
-                  <div className="mt-2 flex gap-2">
-                    {(["planned", "done", "missed"] as const).map((status) => (
-                      <button
-                        key={status}
-                        type="button"
-                        className={`tap-scale rounded-full px-2 py-1 text-[11px] ${block.status === status ? "bg-[var(--primary-muted)] text-[var(--primary)]" : "bg-[var(--s2)] text-[var(--text-3)]"}`}
-                        onClick={() => dispatch({ type: "UPDATE_TIME_BLOCK_STATUS", payload: { blockId: block.id, status } })}
-                      >
-                        {status}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </section>
-        </div>
+        <FocusCalendar />
       )}
 
       <button
@@ -422,13 +429,27 @@ export const Focus = () => {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="absolute left-1/2 top-3 h-1 w-10 -translate-x-1/2 rounded-full bg-[var(--s3)]" />
-            <h2 className="text-[18px] font-medium text-[var(--text-1)]">Add task</h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-[18px] font-medium text-[var(--text-1)]">Add {draftEntityType}</h2>
+              <div className="inline-flex rounded-full border border-[var(--border)] bg-[var(--s1)] p-1">
+                {(["task", "habit"] as DraftEntityType[]).map((entry) => (
+                  <button
+                    key={entry}
+                    type="button"
+                    onClick={() => setDraftEntityType(entry)}
+                    className={`tap-scale rounded-full px-3 py-1 text-[12px] ${draftEntityType === entry ? "bg-[var(--primary)] text-white" : "text-[var(--text-3)]"}`}
+                  >
+                    {entry === "task" ? "Task" : "Habit"}
+                  </button>
+                ))}
+              </div>
+            </div>
             <form className="mt-4 space-y-4" onSubmit={submitTask}>
               <input
                 autoFocus
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Task title"
+                placeholder={draftEntityType === "task" ? "Task title" : "Habit name"}
                 className="w-full border-0 border-b border-[var(--border-strong)] bg-transparent px-1 py-2 text-[16px] font-normal text-[var(--text-1)] outline-none"
               />
 
@@ -455,42 +476,90 @@ export const Focus = () => {
                 </div>
               </div>
 
+              {draftEntityType === "task" ? (
+                <div>
+                  <p className="mb-2 text-caption text-[var(--text-3)]">Priority</p>
+                  <div className="flex gap-2">
+                    {(["P1", "P2", "P3"] as Priority[]).map((level) => (
+                      <button
+                        key={level}
+                        type="button"
+                        onClick={() => setPriority(level)}
+                        className={`tap-scale rounded-full px-3 py-1 text-[12px] ${
+                          priority === level
+                            ? "bg-[var(--primary)] text-white"
+                            : "bg-[var(--s1)] text-[var(--text-3)]"
+                        }`}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {draftEntityType === "task" ? (
+                <div>
+                  <p className="mb-2 text-caption text-[var(--text-3)]">Est. minutes</p>
+                  <input
+                    type="number"
+                    value={estimateMin}
+                    onChange={(event) => setEstimateMin(event.target.value)}
+                    className="w-full rounded-[10px] border border-[var(--border)] bg-[var(--s1)] px-3 py-2 text-[14px] font-normal text-[var(--text-1)] outline-none"
+                    placeholder="e.g. 30"
+                  />
+                </div>
+              ) : null}
+
               <div>
-                <p className="mb-2 text-caption text-[var(--text-3)]">Priority</p>
-                <div className="flex gap-2">
-                  {(["P1", "P2", "P3"] as Priority[]).map((level) => (
+                <p className="mb-2 text-caption text-[var(--text-3)]">Tracking type</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["boolean", "timer", "count", "progress", "manual"] as TrackingType[]).map((type) => (
                     <button
-                      key={level}
+                      key={type}
                       type="button"
-                      onClick={() => setPriority(level)}
-                      className={`tap-scale rounded-full px-3 py-1 text-[12px] ${
-                        priority === level
-                          ? "bg-[var(--primary)] text-white"
-                          : "bg-[var(--s1)] text-[var(--text-3)]"
+                      onClick={() => setTrackingType(type)}
+                      className={`tap-scale rounded-[10px] border px-3 py-2 text-[12px] ${
+                        trackingType === type
+                          ? "border-[var(--primary)] bg-[var(--primary-muted)] text-[var(--primary)]"
+                          : "border-[var(--border)] bg-[var(--s1)] text-[var(--text-3)]"
                       }`}
                     >
-                      {level}
+                      {type}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div>
-                <p className="mb-2 text-caption text-[var(--text-3)]">Est. minutes</p>
-                <input
-                  type="number"
-                  value={estimateMin}
-                  onChange={(event) => setEstimateMin(event.target.value)}
-                  className="w-full rounded-[10px] border border-[var(--border)] bg-[var(--s1)] px-3 py-2 text-[14px] font-normal text-[var(--text-1)] outline-none"
-                  placeholder="e.g. 30"
-                />
-              </div>
+              {trackingType === "count" || trackingType === "progress" || trackingType === "timer" ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <p className="mb-2 text-caption text-[var(--text-3)]">Unit (optional)</p>
+                    <input
+                      value={trackingUnit}
+                      onChange={(event) => setTrackingUnit(event.target.value)}
+                      className="w-full rounded-[10px] border border-[var(--border)] bg-[var(--s1)] px-3 py-2 text-[14px] font-normal text-[var(--text-1)] outline-none"
+                      placeholder="min, reps, pages"
+                    />
+                  </div>
+                  <div>
+                    <p className="mb-2 text-caption text-[var(--text-3)]">Target (optional)</p>
+                    <input
+                      type="number"
+                      value={trackingTarget}
+                      onChange={(event) => setTrackingTarget(event.target.value)}
+                      className="w-full rounded-[10px] border border-[var(--border)] bg-[var(--s1)] px-3 py-2 text-[14px] font-normal text-[var(--text-1)] outline-none"
+                      placeholder="e.g. 3"
+                    />
+                  </div>
+                </div>
+              ) : null}
 
               <button
                 type="submit"
                 className="tap-scale w-full rounded-[14px] bg-[var(--primary)] py-3 text-[14px] font-medium text-white"
               >
-                Add to backlog
+                {draftEntityType === "task" ? "Add to backlog" : "Add habit"}
               </button>
             </form>
           </div>
@@ -500,10 +569,47 @@ export const Focus = () => {
       <TaskDetailSheet
         open={Boolean(activeTask)}
         task={activeTask}
+        areas={state.areas}
         onClose={() => setActiveTask(null)}
+        onSave={({ title: nextTitle, areaId, priority: nextPriority, estimateMin: nextEstimateMin }) => {
+          if (!activeTask) return;
+          dispatch({
+            type: "UPDATE_TASK",
+            payload: {
+              taskId: activeTask.id,
+              updates: {
+                title: nextTitle,
+                areaId,
+                priority: nextPriority,
+                estimateMin: nextEstimateMin,
+              },
+            },
+          });
+          setActiveTask(null);
+        }}
+        onDelete={() => {
+          if (!activeTask) return;
+          const confirmed = window.confirm("Delete this task? This cannot be undone.");
+          if (!confirmed) return;
+          dispatch({ type: "DELETE_TASK", payload: { taskId: activeTask.id } });
+          setActiveTask(null);
+        }}
         onToggle={(taskId) => {
           dispatch({ type: "TOGGLE_TASK", payload: { taskId } });
           setActiveTask((current) => (current ? { ...current, done: !current.done } : current));
+        }}
+        onTrack={({ taskId, value, durationSec, completed, note }) => {
+          dispatch({
+            type: "LOG_TRACKING_ENTRY",
+            payload: {
+              entityType: "task",
+              entityId: taskId,
+              value,
+              durationSec,
+              completed,
+              note,
+            },
+          });
         }}
         onSchedule={(taskId) => {
           scheduleTask(taskId);
@@ -515,10 +621,45 @@ export const Focus = () => {
       <HabitDetailSheet
         open={Boolean(activeHabit)}
         habit={activeHabit}
+        areas={state.areas}
         onClose={() => setActiveHabit(null)}
+        onSave={({ name: nextName, areaId }) => {
+          if (!activeHabit) return;
+          dispatch({
+            type: "UPDATE_HABIT",
+            payload: {
+              habitId: activeHabit.id,
+              updates: {
+                name: nextName,
+                areaId,
+              },
+            },
+          });
+          setActiveHabit(null);
+        }}
+        onDelete={() => {
+          if (!activeHabit) return;
+          const confirmed = window.confirm("Delete this habit? This cannot be undone.");
+          if (!confirmed) return;
+          dispatch({ type: "DELETE_HABIT", payload: { habitId: activeHabit.id } });
+          setActiveHabit(null);
+        }}
         onLog={(habitId) => {
           dispatch({ type: "LOG_HABIT", payload: { habitId } });
           setActiveHabit(null);
+        }}
+        onTrack={({ habitId, value, durationSec, completed, note }) => {
+          dispatch({
+            type: "LOG_TRACKING_ENTRY",
+            payload: {
+              entityType: "habit",
+              entityId: habitId,
+              value,
+              durationSec,
+              completed,
+              note,
+            },
+          });
         }}
         onSchedule={(habitId) => {
           scheduleHabit(habitId);
@@ -526,53 +667,6 @@ export const Focus = () => {
           setTab("calendar");
         }}
       />
-
-      <BottomSheet open={showBlockSheet} onClose={() => setShowBlockSheet(false)}>
-        <form className="px-4 pb-6 pt-8" onSubmit={addManualBlock}>
-          <p className="text-[16px] font-medium text-[var(--text-1)]">Create time block</p>
-          <input
-            value={blockTitle}
-            onChange={(event) => setBlockTitle(event.target.value)}
-            placeholder="Block title"
-            className="mt-4 w-full rounded-[12px] border border-[var(--border)] bg-[var(--s1)] px-3 py-2 text-[14px] text-[var(--text-1)] outline-none"
-          />
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {state.areas.map((area) => (
-              <button
-                key={area.id}
-                type="button"
-                onClick={() => setBlockArea(area.id)}
-                className={`tap-scale rounded-[10px] border px-2 py-2 text-[11px] ${blockArea === area.id ? "border-[var(--primary)] bg-[var(--primary-muted)] text-[var(--primary)]" : "border-[var(--border)] bg-[var(--s2)] text-[var(--text-3)]"}`}
-              >
-                {area.name.split(" ")[0]}
-              </button>
-            ))}
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <input
-              value={blockStart}
-              onChange={(event) => setBlockStart(event.target.value)}
-              type="number"
-              min={0}
-              max={22}
-              className="rounded-[12px] border border-[var(--border)] bg-[var(--s1)] px-3 py-2 text-[13px] text-[var(--text-1)] outline-none"
-              placeholder="Start hour"
-            />
-            <input
-              value={blockDuration}
-              onChange={(event) => setBlockDuration(event.target.value)}
-              type="number"
-              min={1}
-              max={4}
-              className="rounded-[12px] border border-[var(--border)] bg-[var(--s1)] px-3 py-2 text-[13px] text-[var(--text-1)] outline-none"
-              placeholder="Duration"
-            />
-          </div>
-          <button type="submit" className="tap-scale mt-4 w-full rounded-[12px] bg-[var(--primary)] px-4 py-3 text-[13px] font-medium text-white">
-            Save block
-          </button>
-        </form>
-      </BottomSheet>
     </div>
   );
 };

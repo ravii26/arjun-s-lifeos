@@ -1,10 +1,12 @@
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { AIInsightCard } from "../components/AIInsightCard";
 import { HabitRow } from "../components/HabitRow";
 import { NoteDetailSheet } from "../components/NoteDetailSheet";
 import { TaskCard } from "../components/TaskCard";
 import { useAppContext } from "../context/AppContext";
+import { insightCatalog } from "../data/insights";
 import { Note } from "../data/types";
 
 const insightByArea: Record<string, string> = {
@@ -120,6 +122,19 @@ export const AreaDetails = () => {
 
   const trendData = useMemo(() => [55, 61, 63, area?.score ?? 71], [area?.score]);
 
+  const areaInsight =
+    area?.id === "career"
+      ? insightCatalog.areaCareer
+      : area?.id === "health"
+        ? insightCatalog.areaHealth
+        : area?.id === "finance"
+          ? insightCatalog.areaFinance
+          : area?.id === "relationships"
+            ? insightCatalog.areaRelationships
+            : area?.id === "mind"
+              ? insightCatalog.areaMind
+              : insightCatalog.areaCreative;
+
   const chart = {
     width: 280,
     height: 140,
@@ -219,6 +234,20 @@ export const AreaDetails = () => {
           ↑ {Math.abs(area.scoreDelta)} points from last week
         </p>
       </section>
+
+      <AIInsightCard
+        screenId={`area-${area.id}`}
+        insights={areaInsight}
+        onAskCoach={(insight) => {
+          window.dispatchEvent(
+            new CustomEvent("lifeos:open-coach", {
+              detail: {
+                message: `I was looking at ${area.name} and saw: ${insight}. Can you explain more?`,
+              },
+            }),
+          );
+        }}
+      />
 
       <section className="card-base space-y-3">
         {[

@@ -38,7 +38,7 @@ export const callAnthropic = async (options: {
   fallback: string;
   timeoutMs?: number;
 }): Promise<{ text: string; source: "api" | "fallback" }> => {
-  const apiKey = options.apiKey ?? (import.meta.env.VITE_ANTHROPIC_API_KEY as string | undefined);
+  const apiKey = options.apiKey;
   if (!apiKey) {
     return { text: options.fallback, source: "fallback" };
   }
