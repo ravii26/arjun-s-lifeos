@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { AppProvider } from "./context/AppContext";
 import { AppLayout } from "./components/AppLayout";
+import "./styles/lifeos-polish.css";
 import Dashboard from "./components/Dashboard";
 import Tasks from "./components/Tasks";
 import Habits from "./components/Habits";

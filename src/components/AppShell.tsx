@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import '../styles/design-system.css';
 import * as Icons from 'lucide-react'; // Import all icons as a single object
 import { NavLink } from 'react-router-dom';
+import './AppShell.css';
 
 const NAV_GROUPS = [
   {
@@ -32,108 +33,84 @@ const NAV_GROUPS = [
 
 const AppShell = ({ children, pageTitle }: { children: React.ReactNode; pageTitle: string }) => {
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobileNavOpen, setMobileNavOpen] = useState(false);
   const [isTimerRunning, setTimerRunning] = useState(true); // Example state for timer
 
   return (
-    <div className="app-shell" style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      {/* Sidebar */}
+    <div className="app-shell">
+      <div
+        className={`shell-overlay ${isMobileNavOpen ? 'open' : ''}`}
+        onClick={() => setMobileNavOpen(false)}
+      />
+
       <aside
-        style={{
-          width: isSidebarCollapsed ? '56px' : '240px',
-          backgroundColor: 'var(--bg)',
-          borderRight: '1px solid var(--border)',
-          transition: 'width 250ms ease-out',
-          position: 'fixed',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
+        className={`shell-sidebar ${isSidebarCollapsed ? 'collapsed' : ''} ${isMobileNavOpen ? 'mobile-open' : ''}`}
       >
-        {/* Top Section */}
-        <div style={{ height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid var(--border)' }}>
+        <div className="sidebar-top">
           {isSidebarCollapsed ? (
-            <div style={{ width: '32px', height: '32px', backgroundColor: 'var(--accent)', borderRadius: '50%' }}></div>
+            <div className="logo-dot" />
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '32px', height: '32px', backgroundColor: 'var(--accent)', borderRadius: '50%' }}></div>
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>LifeOS</span>
+            <div className="logo-wrap">
+              <div className="logo-dot" />
+              <span>LifeOS</span>
             </div>
           )}
         </div>
 
-        {/* Navigation Items */}
-        <nav style={{ flexGrow: 1, padding: 'var(--space-4)' }}>
+        <nav className="sidebar-nav">
           {NAV_GROUPS.map((group) => (
-            <div key={group.title} style={{ marginBottom: 'var(--space-4)' }}>
-              <span style={{ fontFamily: 'var(--font-ui)', fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.5px' }}>{group.title}</span>
+            <div key={group.title} className="nav-group">
+              <span className="group-title">{group.title}</span>
               {group.items.map((item) => (
-                <NavItem key={item.path} icon={item.icon} label={item.label} path={item.path} isCollapsed={isSidebarCollapsed} />
+                <NavItem
+                  key={item.path}
+                  icon={item.icon}
+                  label={item.label}
+                  path={item.path}
+                  isCollapsed={isSidebarCollapsed}
+                  onNavigate={() => setMobileNavOpen(false)}
+                />
               ))}
             </div>
           ))}
         </nav>
 
-        {/* Bottom Section */}
-        <div style={{ padding: 'var(--space-4)', borderTop: '1px solid var(--border)' }}>
+        <div className="sidebar-bottom">
           {isTimerRunning && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--accent-dim)', padding: '4px 8px', borderRadius: 'var(--radius-md)' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', color: 'var(--accent)' }}>00:25:32</span>
-              <div style={{ width: '8px', height: '8px', backgroundColor: 'var(--accent)', borderRadius: '50%', animation: 'pulse 1.5s infinite' }}></div>
+            <div className="mini-timer">
+              <span>00:25:32</span>
+              <div className="pulse-dot" />
             </div>
           )}
-          <button style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }} onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}>
+
+          <button className="sidebar-toggle" onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}>
             {isSidebarCollapsed ? 'Expand' : 'Collapse'}
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div style={{ marginLeft: isSidebarCollapsed ? '56px' : '240px', flexGrow: 1, overflowY: 'auto' }}>
-        {/* Top Bar */}
-        <header
-          style={{
-            height: '56px',
-            position: 'sticky',
-            top: 0,
-            backgroundColor: 'var(--bg)',
-            backdropFilter: 'blur(12px)',
-            borderBottom: '1px solid var(--border)',
-            zIndex: 10,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 var(--space-4)',
-          }}
-        >
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>{pageTitle}</h1>
-          <input
-            type="text"
-            placeholder="Search tasks, habits, notes..."
-            style={{
-              width: '320px',
-              backgroundColor: 'var(--surface)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)',
-              padding: '0 var(--space-4)',
-              fontFamily: 'var(--font-ui)',
-              fontSize: '14px',
-              color: 'var(--text-primary)',
-            }}
-          />
+      <div className={`shell-main ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+        <header className="shell-topbar">
+          <div className="left-actions">
+            <button className="mobile-menu-btn" onClick={() => setMobileNavOpen(true)}>☰</button>
+            <h1>{pageTitle}</h1>
+          </div>
+
+          <input type="text" placeholder="Search tasks, habits, notes..." className="shell-search" />
         </header>
 
-        {/* Content Area */}
-        <main style={{ padding: '32px' }}>{children}</main>
+        <main className="app-main-content page-enter">{children}</main>
       </div>
     </div>
   );
 };
 
-const NavItem = ({ icon: IconComponent, label, path, isCollapsed }: { icon: React.ComponentType<{ size?: string | number; color?: string }>; label: string; path: string; isCollapsed: boolean }) => {
+const NavItem = ({ icon: IconComponent, label, path, isCollapsed, onNavigate }: { icon: React.ComponentType<{ size?: string | number; color?: string }>; label: string; path: string; isCollapsed: boolean; onNavigate: () => void }) => {
 
   return (
     <NavLink
       to={path}
+      onClick={onNavigate}
       style={({ isActive }) => ({
         display: 'flex',
         alignItems: 'center',
@@ -146,6 +123,7 @@ const NavItem = ({ icon: IconComponent, label, path, isCollapsed }: { icon: Reac
         color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
         transition: 'background-color 150ms ease',
         marginTop: '4px',
+        minHeight: '38px',
       })}
     >
       <IconComponent size={20} color="currentColor" />

@@ -1,0 +1,55 @@
+:root {
+  --motion-fast: 150ms ease;
+  --motion-base: 250ms ease-out;
+  --motion-page: 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.page-enter {
+  animation: page-enter 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dashboard-screen article,
+.tasks-screen article,
+.habits-screen article,
+.calendar-screen article,
+.areas-screen article,
+.learn-screen article,
+.vault-screen article,
+.dump-screen article,
+.settings-screen section,
+.global-showcase section {
+  transition: transform var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), background-color var(--motion-base);
+}
+
+.dashboard-screen article:hover,
+.tasks-screen article:hover,
+.habits-screen article:hover,
+.areas-screen article:hover,
+.learn-screen article:hover,
+.vault-screen article:hover,
+.dump-screen article:hover,
+.settings-screen section:hover,
+.global-showcase section:hover {
+  border-color: var(--border-strong);
+}
+
+@media (max-width: 900px) {
+  .dashboard-screen,
+  .tasks-screen,
+  .habits-screen,
+  .calendar-screen,
+  .areas-screen {
+    gap: 10px;
+  }
+}
