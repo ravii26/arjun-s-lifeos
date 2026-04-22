@@ -1,13 +1,23 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import '../styles/design-system.css';
+import './Habits.css';
+
+const AREA_COLORS = {
+  Career: 'var(--blue)',
+  Health: 'var(--teal)',
+  Mind: 'var(--purple)',
+  Finance: 'var(--accent)',
+};
+
+const defaultHistory = () => [false, false, false, false, false, false, false];
 
 const Habits = () => {
   const [habits, setHabits] = useState([
     {
       id: 1,
-      name: 'Drink Water',
+      name: 'Hydration',
       area: 'Health',
-      type: 'count',
+      type: 'Count',
       target: 8,
       progress: 6,
       streak: 14,
@@ -16,235 +26,188 @@ const Habits = () => {
     },
     {
       id: 2,
-      name: 'Meditate',
-      area: 'Mind',
-      type: 'timer',
-      target: '15m',
-      progress: '10m',
+      name: 'Deep Work Block',
+      area: 'Career',
+      type: 'Timer',
+      target: 60,
+      progress: 35,
       streak: 7,
-      bestStreak: 15,
+      bestStreak: 16,
       history: [true, true, true, false, true, true, true],
     },
     {
       id: 3,
-      name: 'Read 10 Pages',
-      area: 'Career',
-      type: 'boolean',
+      name: 'Evening Reflection',
+      area: 'Mind',
+      type: 'Boolean',
+      target: 1,
+      progress: 0,
       streak: 3,
-      bestStreak: 10,
+      bestStreak: 9,
       history: [false, true, true, true, false, false, true],
     },
   ]);
-  const [isAddingHabit, setIsAddingHabit] = useState(false);
-  const [newHabit, setNewHabit] = useState({ name: '', area: 'Health', type: 'boolean', target: '' });
 
-  const handleAddHabit = () => {
-    if (!newHabit.name) return;
+  const [adding, setAdding] = useState(false);
+  const [newHabit, setNewHabit] = useState({ name: '', area: 'Health', type: 'Boolean', target: 1 });
+
+  const topStreak = Math.max(...habits.map((habit) => habit.bestStreak));
+  const completedToday = habits.filter((habit) => {
+    if (habit.type === 'Boolean') return habit.progress >= 1;
+    return habit.progress >= habit.target;
+  }).length;
+
+  const slotsText = `${habits.length} / 8 slots used`;
+
+  const areaTotals = useMemo(() => {
+    const counts = habits.reduce((acc, habit) => {
+      acc[habit.area] = (acc[habit.area] || 0) + 1;
+      return acc;
+    }, {});
+    return Object.entries(counts);
+  }, [habits]);
+
+  const updateHabit = (habitId, updater) => {
+    setHabits((prev) => prev.map((habit) => (habit.id === habitId ? updater(habit) : habit)));
+  };
+
+  const logBoolean = (habit) => {
+    updateHabit(habit.id, (entry) => {
+      const done = entry.progress >= 1;
+      const nextDone = !done;
+      return {
+        ...entry,
+        progress: nextDone ? 1 : 0,
+        streak: nextDone ? entry.streak + 1 : Math.max(0, entry.streak - 1),
+        history: entry.history.map((value, index) => (index === entry.history.length - 1 ? nextDone : value)),
+      };
+    });
+  };
+
+  const shiftCount = (habit, delta) => {
+    updateHabit(habit.id, (entry) => ({
+      ...entry,
+      progress: Math.max(0, Math.min(entry.target, entry.progress + delta)),
+      history: entry.history.map((value, index) => (index === entry.history.length - 1 ? entry.progress + delta >= entry.target : value)),
+    }));
+  };
+
+  const addHabit = () => {
+    if (!newHabit.name.trim()) return;
+
     setHabits((prev) => [
       ...prev,
       {
         id: Date.now(),
         ...newHabit,
+        target: Number(newHabit.target) || 1,
+        progress: 0,
         streak: 0,
         bestStreak: 0,
-        history: [false, false, false, false, false, false, false],
+        history: defaultHistory(),
       },
     ]);
-    setNewHabit({ name: '', area: 'Health', type: 'boolean', target: '' });
-    setIsAddingHabit(false);
+
+    setNewHabit({ name: '', area: 'Health', type: 'Boolean', target: 1 });
+    setAdding(false);
   };
 
   return (
-    <div className="habits" style={{ padding: 'var(--space-8)' }}>
-      {/* Top Section */}
-      <div style={{ marginBottom: 'var(--space-6)' }}>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
-          Habits
-        </h1>
-        <p style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--text-muted)' }}>
-          {habits.length} active · {Math.max(...habits.map((h) => h.bestStreak))} day best streak
-        </p>
-        <p style={{ fontFamily: 'var(--font-ui)', fontSize: '13px', color: 'var(--text-secondary)' }}>
-          {habits.length} / 3 slots used
-        </p>
-      </div>
+    <div className="habits-screen">
+      <header className="habits-head">
+        <div>
+          <h1>Habits</h1>
+          <p>{habits.length} active · {topStreak} day best streak</p>
+          <small>{slotsText}</small>
+        </div>
+        <button className="btn ghost" onClick={() => setAdding((prev) => !prev)}>{adding ? 'Close' : '+ New Habit'}</button>
+      </header>
 
-      {/* Habit Cards */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+      <section className="habits-summary">
+        <article>
+          <span className="mono">Completed today</span>
+          <strong>{completedToday}/{habits.length}</strong>
+        </article>
+        <article>
+          <span className="mono">Longest current streak</span>
+          <strong>{Math.max(...habits.map((habit) => habit.streak))} days</strong>
+        </article>
+        <article>
+          <span className="mono">Area split</span>
+          <div className="areas-inline">
+            {areaTotals.map(([area, count]) => <span key={area}>{area}: {count}</span>)}
+          </div>
+        </article>
+      </section>
+
+      {adding && (
+        <section className="add-habit">
+          <input
+            value={newHabit.name}
+            onChange={(event) => setNewHabit((prev) => ({ ...prev, name: event.target.value }))}
+            placeholder="Habit name"
+          />
+          <select value={newHabit.area} onChange={(event) => setNewHabit((prev) => ({ ...prev, area: event.target.value }))}>
+            <option>Career</option>
+            <option>Health</option>
+            <option>Mind</option>
+            <option>Finance</option>
+          </select>
+          <select value={newHabit.type} onChange={(event) => setNewHabit((prev) => ({ ...prev, type: event.target.value }))}>
+            <option>Boolean</option>
+            <option>Count</option>
+            <option>Timer</option>
+          </select>
+          <input
+            type="number"
+            min={1}
+            value={newHabit.target}
+            onChange={(event) => setNewHabit((prev) => ({ ...prev, target: Number(event.target.value) || 1 }))}
+            placeholder="Target"
+          />
+          <button className="btn accent" onClick={addHabit}>Add Habit</button>
+        </section>
+      )}
+
+      <section className="habit-list">
         {habits.map((habit) => (
-          <div
-            key={habit.id}
-            style={{
-              backgroundColor: 'var(--surface)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-xl)',
-              padding: 'var(--space-4)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 'var(--space-4)',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <article className="habit-item" key={habit.id}>
+            <div className="habit-top">
               <div>
-                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 'var(--weight-semi-bold)', color: 'var(--text-primary)' }}>
-                  {habit.name}
-                </h2>
-                <p style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--orange)' }}>
-                  🔥 {habit.streak}
-                </p>
+                <h3>{habit.name}</h3>
+                <div className="meta">
+                  <span className="dot" style={{ background: AREA_COLORS[habit.area] }} />
+                  <span>{habit.area}</span>
+                  <span>{habit.type}</span>
+                  <strong>🔥 {habit.streak}</strong>
+                </div>
               </div>
-              <div>
-                {habit.type === 'boolean' && (
-                  <button
-                    style={{
-                      width: '44px',
-                      height: '44px',
-                      borderRadius: '50%',
-                      backgroundColor: habit.history[6] ? 'var(--teal)' : 'transparent',
-                      border: `2px solid ${habit.history[6] ? 'var(--teal)' : 'var(--border)'}`,
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => {
-                      setHabits((prev) =>
-                        prev.map((h) =>
-                          h.id === habit.id
-                            ? {
-                                ...h,
-                                history: h.history.map((day, i) => (i === 6 ? !day : day)),
-                                streak: h.history[6] ? h.streak - 1 : h.streak + 1,
-                              }
-                            : h
-                        )
-                      );
-                    }}
-                  ></button>
+
+              <div className="tracker">
+                {habit.type === 'Boolean' && (
+                  <button className={`check ${habit.progress >= 1 ? 'done' : ''}`} onClick={() => logBoolean(habit)}>
+                    ✓
+                  </button>
                 )}
-                {habit.type === 'count' && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                    <button
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: 'var(--radius-md)',
-                        backgroundColor: 'var(--surface-hover)',
-                        border: 'none',
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => {
-                        setHabits((prev) =>
-                          prev.map((h) =>
-                            h.id === habit.id && h.progress > 0
-                              ? { ...h, progress: h.progress - 1 }
-                              : h
-                          )
-                        );
-                      }}
-                    >
-                      -
-                    </button>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', color: 'var(--text-primary)' }}>
-                      {habit.progress} / {habit.target}
-                    </span>
-                    <button
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: 'var(--radius-md)',
-                        backgroundColor: 'var(--surface-hover)',
-                        border: 'none',
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => {
-                        setHabits((prev) =>
-                          prev.map((h) =>
-                            h.id === habit.id && h.progress < h.target
-                              ? { ...h, progress: h.progress + 1 }
-                              : h
-                          )
-                        );
-                      }}
-                    >
-                      +
-                    </button>
+
+                {habit.type !== 'Boolean' && (
+                  <div className="counter">
+                    <button className="btn tiny" onClick={() => shiftCount(habit, -1)}>-</button>
+                    <b>{habit.progress}/{habit.target}{habit.type === 'Timer' ? 'm' : ''}</b>
+                    <button className="btn tiny" onClick={() => shiftCount(habit, 1)}>+</button>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* 7-Day Grid */}
-            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-              {habit.history.map((day, index) => (
-                <div
-                  key={index}
-                  style={{
-                    width: '14px',
-                    height: '14px',
-                    borderRadius: '50%',
-                    backgroundColor: day
-                      ? 'var(--teal)'
-                      : index === 6
-                      ? 'transparent'
-                      : 'var(--red-dim)',
-                    border: index === 6 ? '2px solid var(--teal)' : 'none',
-                  }}
-                ></div>
+            <div className="seven-grid">
+              {habit.history.map((day, idx) => (
+                <span key={idx} className={`day ${day ? 'on' : 'off'} ${idx === habit.history.length - 1 ? 'today' : ''}`} />
               ))}
             </div>
-          </div>
+          </article>
         ))}
-      </div>
-
-      {/* Add Habit */}
-      {isAddingHabit ? (
-        <div style={{ marginTop: 'var(--space-6)', padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
-          <input
-            type="text"
-            placeholder="Habit name..."
-            value={newHabit.name}
-            onChange={(e) => setNewHabit({ ...newHabit, name: e.target.value })}
-            style={{
-              width: '100%',
-              padding: 'var(--space-3)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)',
-              fontFamily: 'var(--font-ui)',
-              fontSize: '14px',
-              color: 'var(--text-primary)',
-            }}
-          />
-          <button
-            style={{
-              marginTop: 'var(--space-4)',
-              backgroundColor: 'var(--accent)',
-              color: '#000',
-              padding: '8px 16px',
-              borderRadius: 'var(--radius-md)',
-              border: 'none',
-              fontFamily: 'var(--font-ui)',
-              fontWeight: 'var(--weight-semi-bold)',
-            }}
-            onClick={handleAddHabit}
-          >
-            Add Habit
-          </button>
-        </div>
-      ) : (
-        <button
-          style={{
-            marginTop: 'var(--space-6)',
-            backgroundColor: 'var(--surface)',
-            color: 'var(--text-secondary)',
-            padding: '8px 16px',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border)',
-            fontFamily: 'var(--font-ui)',
-            fontWeight: 'var(--weight-medium)',
-          }}
-          onClick={() => setIsAddingHabit(true)}
-        >
-          + New Habit
-        </button>
-      )}
+      </section>
     </div>
   );
 };

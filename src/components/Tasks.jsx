@@ -1,210 +1,179 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import '../styles/design-system.css';
+import './Tasks.css';
+
+const AREA_COLORS = {
+  Career: 'var(--blue)',
+  Health: 'var(--teal)',
+  Mind: 'var(--purple)',
+  Finance: 'var(--accent)',
+};
 
 const Tasks = () => {
   const [todayTasks, setTodayTasks] = useState([
-    { id: 1, title: 'Complete project report', area: 'Career', priority: 'P1', type: 'boolean', done: false },
-    { id: 2, title: 'Workout for 30 minutes', area: 'Health', priority: 'P2', type: 'timer', done: true },
+    { id: 1, title: 'Finalize architecture deck', area: 'Career', priority: 'P1', type: 'Boolean', done: false },
+    { id: 2, title: '45 min strength training', area: 'Health', priority: 'P2', type: 'Timer', done: true },
   ]);
-  const [backlogTasks, setBacklogTasks] = useState([
-    { id: 3, title: 'Read 10 pages', area: 'Mind', priority: 'P2', type: 'count', done: false },
-    { id: 4, title: 'Plan next week', area: 'Career', priority: 'P3', type: 'manual', done: false },
-  ]);
-  const [missedTasks, setMissedTasks] = useState([
-    { id: 5, title: 'Submit tax documents', area: 'Finance', priority: 'P1', type: 'boolean', done: false },
-  ]);
-  const [isQuickAddOpen, setQuickAddOpen] = useState(false);
-  const [newTask, setNewTask] = useState({ title: '', area: 'Career', priority: 'P2', type: 'boolean' });
 
-  const handleAddTask = () => {
-    if (!newTask.title) return;
-    setTodayTasks((prev) => [
-      ...prev,
-      { id: Date.now(), ...newTask, done: false },
-    ]);
-    setNewTask({ title: '', area: 'Career', priority: 'P2', type: 'boolean' });
-    setQuickAddOpen(false);
+  const [backlogTasks, setBacklogTasks] = useState([
+    { id: 3, title: 'Create sprint estimation rubric', area: 'Career', priority: 'P2', type: 'Manual', done: false },
+    { id: 4, title: 'Write investment review note', area: 'Finance', priority: 'P1', type: 'Boolean', done: false },
+  ]);
+
+  const [missedTasks, setMissedTasks] = useState([
+    { id: 5, title: 'Sleep by 11:00 PM', area: 'Health', priority: 'P2', type: 'Boolean', done: false },
+  ]);
+
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [newTask, setNewTask] = useState({ title: '', area: 'Career', priority: 'P2', type: 'Boolean' });
+
+  const completed = todayTasks.filter((task) => task.done).length;
+  const progress = Math.round((completed / todayTasks.length) * 100);
+
+  const topPriority = useMemo(() => {
+    return todayTasks.find((task) => !task.done && task.priority === 'P1') || todayTasks.find((task) => !task.done) || null;
+  }, [todayTasks]);
+
+  const addTask = () => {
+    if (!newTask.title.trim()) return;
+    setTodayTasks((prev) => [...prev, { ...newTask, id: Date.now(), done: false }]);
+    setNewTask({ title: '', area: 'Career', priority: 'P2', type: 'Boolean' });
+    setQuickOpen(false);
   };
 
-  return (
-    <div className="tasks" style={{ display: 'flex', gap: 'var(--space-8)', padding: 'var(--space-8)' }}>
-      {/* Today Column */}
-      <div style={{ flex: 1 }}>
-        <div style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
-            Today
-          </h2>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--text-muted)' }}>
-            {todayTasks.filter((task) => task.done).length}/{todayTasks.length} tasks done
-          </p>
-          <div
-            style={{
-              height: '4px',
-              backgroundColor: 'var(--border)',
-              borderRadius: '2px',
-              overflow: 'hidden',
-              marginTop: 'var(--space-2)',
-            }}
-          >
-            <div
-              style={{
-                width: `${(todayTasks.filter((task) => task.done).length / todayTasks.length) * 100}%`,
-                height: '100%',
-                backgroundColor: 'var(--accent)',
-                transition: 'width 300ms ease',
-              }}
-            ></div>
-          </div>
+  const renderTaskRow = (task, options = {}) => (
+    <article className="task-row" key={task.id}>
+      {!options.noCheckbox && (
+        <input
+          type="checkbox"
+          checked={task.done}
+          onChange={() => setTodayTasks((prev) => prev.map((entry) => (entry.id === task.id ? { ...entry, done: !entry.done } : entry)))}
+        />
+      )}
+      <div className="task-main">
+        <p className={task.done ? 'done' : ''}>{task.title}</p>
+        <div className="meta">
+          <span className="dot" style={{ background: AREA_COLORS[task.area] }} />
+          <span>{task.area}</span>
+          <span>{task.type}</span>
+          <span className={`badge ${task.priority.toLowerCase()}`}>{task.priority}</span>
         </div>
+      </div>
+      <div className="actions">{options.actions}</div>
+    </article>
+  );
 
-        {/* Quick Add Task */}
-        <div style={{ marginBottom: 'var(--space-6)' }}>
-          {isQuickAddOpen ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+  return (
+    <div className="tasks-screen">
+      <section className="tasks-main">
+        <header className="tasks-head">
+          <h1>Tasks</h1>
+          <p>{completed}/{todayTasks.length} done today · {progress}% complete</p>
+        </header>
+
+        <article className="focus-card">
+          <small>TOP PRIORITY</small>
+          <h3>{topPriority ? topPriority.title : 'No pending tasks'}</h3>
+          <div className="progress-track"><div style={{ width: `${progress}%` }} /></div>
+        </article>
+
+        <article className="quick-add-card">
+          {quickOpen ? (
+            <div className="quick-grid">
               <input
-                type="text"
-                placeholder="Task title..."
                 value={newTask.title}
-                onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                style={{
-                  padding: 'var(--space-3)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-md)',
-                  fontFamily: 'var(--font-ui)',
-                  fontSize: '14px',
-                  color: 'var(--text-primary)',
-                }}
+                onChange={(event) => setNewTask((prev) => ({ ...prev, title: event.target.value }))}
+                placeholder="Task title"
               />
-              <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
-                <button
-                  style={{
-                    backgroundColor: 'var(--accent)',
-                    color: '#000',
-                    padding: '8px 16px',
-                    borderRadius: 'var(--radius-md)',
-                    border: 'none',
-                    fontFamily: 'var(--font-ui)',
-                    fontWeight: 'var(--weight-semi-bold)',
-                  }}
-                  onClick={handleAddTask}
-                >
-                  Add
-                </button>
-                <button
-                  style={{
-                    backgroundColor: 'transparent',
-                    color: 'var(--text-secondary)',
-                    padding: '8px 16px',
-                    borderRadius: 'var(--radius-md)',
-                    border: 'none',
-                    fontFamily: 'var(--font-ui)',
-                    fontWeight: 'var(--weight-medium)',
-                  }}
-                  onClick={() => setQuickAddOpen(false)}
-                >
-                  Cancel
-                </button>
+              <select value={newTask.area} onChange={(event) => setNewTask((prev) => ({ ...prev, area: event.target.value }))}>
+                <option>Career</option>
+                <option>Health</option>
+                <option>Mind</option>
+                <option>Finance</option>
+              </select>
+              <select value={newTask.priority} onChange={(event) => setNewTask((prev) => ({ ...prev, priority: event.target.value }))}>
+                <option>P1</option>
+                <option>P2</option>
+                <option>P3</option>
+              </select>
+              <select value={newTask.type} onChange={(event) => setNewTask((prev) => ({ ...prev, type: event.target.value }))}>
+                <option>Boolean</option>
+                <option>Count</option>
+                <option>Timer</option>
+                <option>Manual</option>
+              </select>
+              <div className="quick-actions">
+                <button className="btn accent" onClick={addTask}>Add Task</button>
+                <button className="btn ghost" onClick={() => setQuickOpen(false)}>Cancel</button>
               </div>
             </div>
           ) : (
-            <button
-              style={{
-                backgroundColor: 'var(--surface)',
-                color: 'var(--text-secondary)',
-                padding: '8px 16px',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border)',
-                fontFamily: 'var(--font-ui)',
-                fontWeight: 'var(--weight-medium)',
-                width: '100%',
-              }}
-              onClick={() => setQuickAddOpen(true)}
-            >
-              Add a task for today...
-            </button>
+            <button className="btn ghost fill" onClick={() => setQuickOpen(true)}>+ Add a task for today...</button>
           )}
-        </div>
+        </article>
 
-        {/* Today Tasks */}
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {todayTasks.map((task) => (
-            <li
-              key={task.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-4)',
-                padding: '8px 0',
-                borderBottom: '1px solid var(--border)',
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={task.done}
-                onChange={() => {
-                  setTodayTasks((prev) =>
-                    prev.map((t) => (t.id === task.id ? { ...t, done: !t.done } : t))
-                  );
-                }}
-                style={{ width: '18px', height: '18px', borderRadius: '4px', border: '1px solid var(--border)' }}
-              />
-              <span style={{ fontFamily: 'var(--font-ui)', fontSize: '14px', color: task.done ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: task.done ? 'line-through' : 'none' }}>
-                {task.title}
-              </span>
-              <span style={{ width: '8px', height: '8px', backgroundColor: 'var(--blue)', borderRadius: '50%' }}></span>
-              <span style={{ fontFamily: 'var(--font-ui)', fontSize: '12px', color: 'var(--text-secondary)', padding: '2px 8px', backgroundColor: 'var(--blue-dim)', borderRadius: 'var(--radius-sm)' }}>
-                {task.priority}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </div>
+        <section className="list-section">
+          <h4>Today</h4>
+          <div className="task-list">
+            {todayTasks.map((task) =>
+              renderTaskRow(task, {
+                actions: (
+                  <button className="btn tiny" onClick={() => setBacklogTasks((prev) => [...prev, { ...task, id: Date.now(), done: false }])}>↗</button>
+                ),
+              })
+            )}
+          </div>
+        </section>
+      </section>
 
-      {/* Backlog Column */}
-      <div style={{ flex: 1 }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
-          Backlog
-        </h2>
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {backlogTasks.map((task) => (
-            <li
-              key={task.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-4)',
-                padding: '8px 0',
-                borderBottom: '1px solid var(--border)',
-              }}
-            >
-              <span style={{ fontFamily: 'var(--font-ui)', fontSize: '14px', color: 'var(--text-primary)' }}>
-                {task.title}
-              </span>
-              <button
-                style={{
-                  marginLeft: 'auto',
-                  backgroundColor: 'var(--accent)',
-                  color: '#000',
-                  padding: '4px 8px',
-                  borderRadius: 'var(--radius-md)',
-                  border: 'none',
-                  fontFamily: 'var(--font-ui)',
-                  fontWeight: 'var(--weight-semi-bold)',
-                }}
-                onClick={() => {
-                  setTodayTasks((prev) => [
-                    ...prev,
-                    { ...task, id: Date.now(), done: false },
-                  ]);
-                  setBacklogTasks((prev) => prev.filter((t) => t.id !== task.id));
-                }}
-              >
-                Add to Today
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <aside className="tasks-side">
+        <section className="list-section">
+          <h4>Backlog</h4>
+          <div className="task-list">
+            {backlogTasks.map((task) =>
+              renderTaskRow(task, {
+                noCheckbox: true,
+                actions: (
+                  <button
+                    className="btn tiny"
+                    onClick={() => {
+                      setTodayTasks((prev) => [...prev, { ...task, id: Date.now(), done: false }]);
+                      setBacklogTasks((prev) => prev.filter((entry) => entry.id !== task.id));
+                    }}
+                  >
+                    +
+                  </button>
+                ),
+              })
+            )}
+          </div>
+        </section>
+
+        <section className="list-section">
+          <h4>Missed</h4>
+          <div className="task-list">
+            {missedTasks.map((task) =>
+              renderTaskRow(task, {
+                noCheckbox: true,
+                actions: (
+                  <>
+                    <button
+                      className="btn tiny"
+                      onClick={() => {
+                        setTodayTasks((prev) => [...prev, { ...task, id: Date.now(), done: false }]);
+                        setMissedTasks((prev) => prev.filter((entry) => entry.id !== task.id));
+                      }}
+                    >
+                      Retry
+                    </button>
+                    <button className="btn tiny ghost" onClick={() => setMissedTasks((prev) => prev.filter((entry) => entry.id !== task.id))}>Dismiss</button>
+                  </>
+                ),
+              })
+            )}
+          </div>
+        </section>
+      </aside>
     </div>
   );
 };

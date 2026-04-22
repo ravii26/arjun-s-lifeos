@@ -1,188 +1,117 @@
-import React, { useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import React, { useMemo, useState } from 'react';
+import { Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import '../styles/design-system.css';
+import './Areas.css';
+
+const AREAS = [
+  { name: 'Career', score: 68, trend: '+12', tasks: '4/5', habits: '3d streak', time: '2h 40m', color: 'var(--blue)' },
+  { name: 'Health', score: 71, trend: '+5', tasks: '3/4', habits: '12d streak', time: '4h 20m', color: 'var(--teal)' },
+  { name: 'Mind', score: 45, trend: '-8', tasks: '2/5', habits: '1d streak', time: '1h 10m', color: 'var(--purple)' },
+  { name: 'Finance', score: 82, trend: '→', tasks: '5/5', habits: '7d streak', time: '3h 30m', color: 'var(--accent)' },
+  { name: 'Relationships', score: 39, trend: '-5', tasks: '1/3', habits: '0d streak', time: '0h 50m', color: 'var(--pink)' },
+  { name: 'Creative', score: 64, trend: '+3', tasks: '3/5', habits: '5d streak', time: '2h 15m', color: 'var(--orange)' },
+];
+
+const TREND = [
+  { week: 'W1', Career: 60, Health: 65, Mind: 50, Finance: 80, Relationships: 40, Creative: 55 },
+  { week: 'W2', Career: 62, Health: 68, Mind: 48, Finance: 82, Relationships: 42, Creative: 58 },
+  { week: 'W3', Career: 64, Health: 70, Mind: 46, Finance: 82, Relationships: 39, Creative: 60 },
+  { week: 'W4', Career: 68, Health: 71, Mind: 45, Finance: 82, Relationships: 39, Creative: 64 },
+  { week: 'W5', Career: 66, Health: 73, Mind: 52, Finance: 80, Relationships: 44, Creative: 63 },
+  { week: 'W6', Career: 69, Health: 72, Mind: 49, Finance: 84, Relationships: 43, Creative: 66 },
+  { week: 'W7', Career: 67, Health: 74, Mind: 47, Finance: 83, Relationships: 41, Creative: 67 },
+  { week: 'W8', Career: 68, Health: 71, Mind: 45, Finance: 82, Relationships: 39, Creative: 64 },
+];
 
 const Areas = () => {
-  const [selectedArea, setSelectedArea] = useState(null);
-  const [isBreakdownExpanded, setBreakdownExpanded] = useState(false);
+  const [selected, setSelected] = useState(AREAS[0].name);
+  const [showBreakdown, setShowBreakdown] = useState(true);
 
-  const areas = [
-    { name: 'Career', score: 68, trend: '+12', tasks: '4/5', habits: '3d streak', time: '2h 40m', color: 'var(--blue)' },
-    { name: 'Health', score: 71, trend: '+5', tasks: '3/4', habits: '12d streak', time: '4h 20m', color: 'var(--teal)' },
-    { name: 'Mind', score: 45, trend: '-8', tasks: '2/5', habits: '1d streak', time: '1h 10m', color: 'var(--purple)' },
-    { name: 'Finance', score: 82, trend: '→', tasks: '5/5', habits: '7d streak', time: '3h 30m', color: 'var(--accent)' },
-    { name: 'Relationships', score: 39, trend: '-5', tasks: '1/3', habits: '0d streak', time: '0h 50m', color: 'var(--pink)' },
-    { name: 'Creative', score: 64, trend: '+3', tasks: '3/5', habits: '5d streak', time: '2h 15m', color: 'var(--orange)' },
-  ];
+  const average = Math.round(AREAS.reduce((sum, area) => sum + area.score, 0) / AREAS.length);
+  const selectedArea = AREAS.find((area) => area.name === selected) || AREAS[0];
 
-  const trendData = [
-    { week: 'W1', Career: 60, Health: 65, Mind: 50, Finance: 80, Relationships: 40, Creative: 55 },
-    { week: 'W2', Career: 62, Health: 68, Mind: 48, Finance: 82, Relationships: 42, Creative: 58 },
-    { week: 'W3', Career: 64, Health: 70, Mind: 46, Finance: 82, Relationships: 39, Creative: 60 },
-    { week: 'W4', Career: 68, Health: 71, Mind: 45, Finance: 82, Relationships: 39, Creative: 64 },
-  ];
-
-  const handleAreaClick = (area) => {
-    setSelectedArea(area);
-  };
-
-  const renderAreaCards = () => {
-    return areas.map((area) => (
-      <div
-        key={area.name}
-        style={{
-          width: '260px',
-          height: '180px',
-          backgroundColor: 'var(--surface)',
-          borderRadius: 'var(--radius-xl)',
-          padding: 'var(--space-4)',
-          position: 'relative',
-          cursor: 'pointer',
-        }}
-        onClick={() => handleAreaClick(area)}
-      >
-        <div
-          style={{
-            height: '4px',
-            backgroundColor: area.color,
-            borderRadius: 'var(--radius-sm)',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-          }}
-        ></div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 'var(--weight-bold)', color: area.color }}>
-            {area.name}
-          </h3>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: area.trend.startsWith('+') ? 'var(--teal)' : area.trend.startsWith('-') ? 'var(--red)' : 'var(--text-muted)' }}>
-            {area.trend}
-          </span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '96px' }}>
-          <div
-            style={{
-              width: '96px',
-              height: '96px',
-              borderRadius: '50%',
-              border: `6px solid ${area.color}`,
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '32px',
-              fontWeight: 'var(--weight-bold)',
-              color: area.color,
-            }}
-          >
-            {area.score}
-          </div>
-        </div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
-          <p>Tasks: {area.tasks}</p>
-          <p>Habits: {area.habits}</p>
-          <p>Time: {area.time}</p>
-        </div>
-      </div>
-    ));
-  };
+  const breakdown = useMemo(() => {
+    return {
+      task: Math.min(100, selectedArea.score + 8),
+      habit: Math.max(20, selectedArea.score - 6),
+      time: Math.max(15, selectedArea.score - 12),
+    };
+  }, [selectedArea]);
 
   return (
-    <div className="areas" style={{ padding: 'var(--space-8)' }}>
-      {/* Header */}
-      <div style={{ marginBottom: 'var(--space-6)' }}>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
-          Life Areas
-        </h1>
-        <p style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--text-muted)' }}>
-          Weekly performance · Rolling 7 days
-        </p>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-4)' }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '64px', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
-            68
-          </span>
-          <span style={{ fontFamily: 'var(--font-ui)', fontSize: '13px', color: 'var(--text-secondary)' }}>
-            Average across all areas
-          </span>
+    <div className="areas-screen">
+      <header className="areas-head">
+        <h1>Life Areas</h1>
+        <p>Weekly performance · Rolling 7 days</p>
+        <div className="avg-wrap">
+          <span>{average}</span>
+          <small>Average across all areas</small>
         </div>
-      </div>
+      </header>
 
-      {/* Area Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-6)', marginBottom: 'var(--space-8)' }}>
-        {renderAreaCards()}
-      </div>
+      <section className="areas-grid">
+        {AREAS.map((area) => (
+          <article
+            className={`area-tile ${selected === area.name ? 'active' : ''}`}
+            key={area.name}
+            onClick={() => setSelected(area.name)}
+          >
+            <div className="line" style={{ background: area.color }} />
+            <div className="tile-top">
+              <h3 style={{ color: area.color }}>{area.name}</h3>
+              <em className={area.trend.startsWith('+') ? 'pos' : area.trend.startsWith('-') ? 'neg' : ''}>{area.trend}</em>
+            </div>
 
-      {/* Score Breakdown Section */}
-      <div style={{ marginBottom: 'var(--space-8)' }}>
-        <button
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            fontFamily: 'var(--font-ui)',
-            fontSize: '14px',
-            cursor: 'pointer',
-          }}
-          onClick={() => setBreakdownExpanded(!isBreakdownExpanded)}
-        >
-          {isBreakdownExpanded ? 'Hide' : 'How scores are calculated'}
+            <div className="score-ring" style={{ '--ring-color': area.color, '--score': `${area.score}%` }}>
+              <span>{area.score}</span>
+            </div>
+
+            <div className="tile-stats mono">
+              <div>Tasks: {area.tasks}</div>
+              <div>Habits: {area.habits}</div>
+              <div>Time: {area.time}</div>
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <section className="breakdown">
+        <button className="toggle" onClick={() => setShowBreakdown((prev) => !prev)}>
+          {showBreakdown ? 'Hide' : 'Show'} score breakdown
         </button>
-        {isBreakdownExpanded && (
-          <div style={{ display: 'flex', gap: 'var(--space-6)', marginTop: 'var(--space-4)' }}>
-            <div style={{ flex: 1, backgroundColor: 'var(--surface)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)' }}>
-              <h4 style={{ fontFamily: 'var(--font-ui)', fontSize: '14px', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
-                Task Score (40%)
-              </h4>
-              <div style={{ height: '8px', backgroundColor: 'var(--border)', borderRadius: '4px', overflow: 'hidden', marginTop: 'var(--space-2)' }}>
-                <div style={{ width: '80%', height: '100%', backgroundColor: 'var(--accent)' }}></div>
-              </div>
-            </div>
-            <div style={{ flex: 1, backgroundColor: 'var(--surface)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)' }}>
-              <h4 style={{ fontFamily: 'var(--font-ui)', fontSize: '14px', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
-                Habit Score (30%)
-              </h4>
-              <div style={{ height: '8px', backgroundColor: 'var(--border)', borderRadius: '4px', overflow: 'hidden', marginTop: 'var(--space-2)' }}>
-                <div style={{ width: '60%', height: '100%', backgroundColor: 'var(--accent)' }}></div>
-              </div>
-            </div>
-            <div style={{ flex: 1, backgroundColor: 'var(--surface)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)' }}>
-              <h4 style={{ fontFamily: 'var(--font-ui)', fontSize: '14px', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
-                Time Score (30%)
-              </h4>
-              <div style={{ height: '8px', backgroundColor: 'var(--border)', borderRadius: '4px', overflow: 'hidden', marginTop: 'var(--space-2)' }}>
-                <div style={{ width: '50%', height: '100%', backgroundColor: 'var(--accent)' }}></div>
-              </div>
-            </div>
+
+        {showBreakdown && (
+          <div className="break-grid">
+            <article>
+              <h4>Task Score (40%)</h4>
+              <div className="bar"><div style={{ width: `${breakdown.task}%` }} /></div>
+            </article>
+            <article>
+              <h4>Habit Score (30%)</h4>
+              <div className="bar"><div style={{ width: `${breakdown.habit}%` }} /></div>
+            </article>
+            <article>
+              <h4>Time Score (30%)</h4>
+              <div className="bar"><div style={{ width: `${breakdown.time}%` }} /></div>
+            </article>
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Trend Chart */}
-      <div style={{ marginBottom: 'var(--space-8)' }}>
-        <h4 style={{ fontFamily: 'var(--font-ui)', fontSize: '14px', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)', marginBottom: 'var(--space-4)' }}>
-          8-Week Trend
-        </h4>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={trendData}>
+      <section className="chart-section">
+        <h4>8-Week Trend</h4>
+        <ResponsiveContainer width="100%" height={320}>
+          <LineChart data={TREND}>
             <XAxis dataKey="week" stroke="var(--text-muted)" />
             <YAxis domain={[0, 100]} stroke="var(--text-muted)" />
-            <Tooltip contentStyle={{ backgroundColor: 'var(--surface)', border: 'none', borderRadius: 'var(--radius-md)' }} />
+            <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-raised)' }} />
             <Legend />
-            {areas.map((area) => (
-              <Line
-                key={area.name}
-                type="monotone"
-                dataKey={area.name}
-                stroke={area.color}
-                strokeWidth={2}
-                dot={{ r: 3 }}
-                activeDot={{ r: 5 }}
-              />
+            {AREAS.map((area) => (
+              <Line key={area.name} type="monotone" dataKey={area.name} stroke={area.color} strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 5 }} />
             ))}
           </LineChart>
         </ResponsiveContainer>
-      </div>
+      </section>
     </div>
   );
 };
