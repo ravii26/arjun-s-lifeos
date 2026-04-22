@@ -8,6 +8,7 @@ import Habits from "./components/Habits";
 import Calendar from "./components/Calendar";
 import Learn from "./components/Learn";
 import Areas from "./components/Areas";
+import AreaDetail from "./components/AreaDetail";
 import Vault from "./components/Vault";
 import Dump from "./components/Dump";
 import Settings from "./components/Settings";
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/learn" element={<Learn />} />
           <Route path="/areas" element={<Areas />} />
+          <Route path="/areas/:areaKey" element={<AreaDetail />} />
           <Route path="/vault" element={<Vault />} />
           <Route path="/dump" element={<Dump />} />
           <Route path="/settings" element={<Settings />} />

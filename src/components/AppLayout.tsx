@@ -17,7 +17,7 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
     '/settings': 'Settings',
   };
 
-  const pageTitle = titleByPath[pathname] ?? 'LifeOS';
+  const pageTitle = pathname.startsWith('/areas/') ? 'Area Detail' : titleByPath[pathname] ?? 'LifeOS';
 
   return (
     <AppShell pageTitle={pageTitle}>

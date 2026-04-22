@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 import '../styles/design-system.css';
 import './Areas.css';
 
@@ -24,6 +25,7 @@ const TREND = [
 ];
 
 const Areas = () => {
+  const navigate = useNavigate();
   const [selected, setSelected] = useState(AREAS[0].name);
   const [showBreakdown, setShowBreakdown] = useState(true);
 
@@ -46,6 +48,9 @@ const Areas = () => {
         <div className="avg-wrap">
           <span>{average}</span>
           <small>Average across all areas</small>
+          <button className="open-detail" onClick={() => navigate(`/areas/${selected.toLowerCase()}`)}>
+            Open {selected} detail
+          </button>
         </div>
       </header>
 
@@ -71,6 +76,16 @@ const Areas = () => {
               <div>Habits: {area.habits}</div>
               <div>Time: {area.time}</div>
             </div>
+
+            <button
+              className="open-detail mini"
+              onClick={(event) => {
+                event.stopPropagation();
+                navigate(`/areas/${area.name.toLowerCase()}`);
+              }}
+            >
+              View details
+            </button>
           </article>
         ))}
       </section>

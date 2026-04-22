@@ -22,6 +22,7 @@
   display: flex;
   align-items: baseline;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .avg-wrap span {
@@ -35,6 +36,23 @@
 .break-grid h4 {
   color: var(--text-muted);
   font-family: var(--font-ui);
+}
+
+.open-detail {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  min-height: 34px;
+  padding: 0 10px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.open-detail.mini {
+  margin-top: 10px;
+  width: 100%;
 }
 
 .areas-grid {
