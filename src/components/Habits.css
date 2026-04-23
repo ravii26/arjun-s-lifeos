@@ -11,6 +11,12 @@
   align-items: flex-start;
 }
 
+.habit-status-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .habits-head h1 {
   margin: 0;
   color: var(--text-primary);
@@ -154,6 +160,15 @@
   align-items: center;
 }
 
+.habit-status-chip {
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 1px 8px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
 .dot {
   width: 8px;
   height: 8px;
@@ -186,6 +201,29 @@
   color: var(--text-primary);
   font-family: var(--font-mono);
   font-size: 13px;
+}
+
+.timer-note {
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 12px;
+}
+
+.habit-timer-strip {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.habit-timer-readout {
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
 }
 
 .habit-progress {
@@ -224,6 +262,13 @@
   transition: width 0.55s ease;
 }
 
+.habit-status-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .seven-grid {
   margin-top: 10px;
   display: flex;
@@ -244,6 +289,12 @@
 .day.today {
   border: 2px solid var(--teal);
   background: transparent;
+}
+
+.empty-state {
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 13px;
 }
 
 @keyframes rise-in {

@@ -2,15 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import '../styles/design-system.css';
 import './AreaDetail.css';
-
-const AREAS = {
-  career: { label: 'Career', color: 'var(--blue)' },
-  health: { label: 'Health', color: 'var(--teal)' },
-  mind: { label: 'Mind', color: 'var(--purple)' },
-  finance: { label: 'Finance', color: 'var(--accent)' },
-  relationships: { label: 'Relationships', color: 'var(--pink)' },
-  creative: { label: 'Creative', color: 'var(--orange)' },
-};
+import { AREA_META, loadAreasStore, saveAreasStore } from '../lib/areasStore';
 
 const SECTIONS = [
   { key: 'tasks', label: 'Tasks' },
@@ -20,27 +12,8 @@ const SECTIONS = [
   { key: 'vault', label: 'Vault' },
 ];
 
-const makeSeed = (prefix) => ({
-  tasks: [{ id: 1, title: `${prefix} weekly priority`, priority: 'P1', status: 'Open' }],
-  habits: [{ id: 1, name: `${prefix} daily ritual`, target: '1/day', streak: 3, active: true }],
-  notes: [{ id: 1, title: `${prefix} insights`, content: `Capture what is improving in ${prefix}.` }],
-  resources: [{ id: 1, title: `${prefix} reference`, type: 'Article', url: 'https://example.com' }],
-  vault: [{ id: 1, title: `${prefix} anchor`, type: 'Quote', content: 'Consistent action beats intensity.' }],
-});
-
-const INITIAL_DATA = {
-  career: makeSeed('Career'),
-  health: makeSeed('Health'),
-  mind: makeSeed('Mind'),
-  finance: makeSeed('Finance'),
-  relationships: makeSeed('Relationships'),
-  creative: makeSeed('Creative'),
-};
-
-const STORAGE_KEY = 'lifeos.area-detail-data.v1';
-
 const EMPTY_BY_SECTION = {
-  tasks: { title: '', priority: 'P2', status: 'Open' },
+  tasks: { title: '', priority: 'P2', status: 'Open', estimate: '30m', notes: '' },
   habits: { name: '', target: '1/day', streak: 0, active: true },
   notes: { title: '', content: '' },
   resources: { title: '', type: 'Article', url: '' },
@@ -49,38 +22,21 @@ const EMPTY_BY_SECTION = {
 
 const nextId = (items) => (items.length ? Math.max(...items.map((item) => item.id)) + 1 : 1);
 
-const loadStoredData = () => {
-  if (typeof window === 'undefined') return INITIAL_DATA;
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return INITIAL_DATA;
-
-    const parsed = JSON.parse(raw);
-    return {
-      ...INITIAL_DATA,
-      ...parsed,
-    };
-  } catch {
-    return INITIAL_DATA;
-  }
-};
-
 const AreaDetail = () => {
   const { areaKey = '' } = useParams();
   const navigate = useNavigate();
 
-  const area = AREAS[areaKey];
+  const area = AREA_META[areaKey];
 
   const [activeSection, setActiveSection] = useState('tasks');
-  const [dataByArea, setDataByArea] = useState(loadStoredData);
+  const [areasStore, setAreasStore] = useState(loadAreasStore);
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(EMPTY_BY_SECTION.tasks);
+  const [taskErrors, setTaskErrors] = useState({});
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(dataByArea));
-  }, [dataByArea]);
+    saveAreasStore(areasStore);
+  }, [areasStore]);
 
   if (!area) {
     return (
@@ -93,11 +49,13 @@ const AreaDetail = () => {
     );
   }
 
-  const sectionItems = dataByArea[areaKey][activeSection];
+  const detailByArea = areasStore.detailByArea || {};
+  const sectionItems = detailByArea[areaKey]?.[activeSection] || [];
 
   const resetDraft = (sectionKey) => {
     setEditingId(null);
     setDraft(EMPTY_BY_SECTION[sectionKey]);
+    if (sectionKey === 'tasks') setTaskErrors({});
   };
 
   const changeSection = (sectionKey) => {
@@ -107,19 +65,66 @@ const AreaDetail = () => {
 
   const updateDraft = (key, value) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
+    if (activeSection === 'tasks') {
+      setTaskErrors((prev) => {
+        if (!prev[key]) return prev;
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
+  };
+
+  const validateTaskDraft = () => {
+    const errors = {};
+
+    if (!draft.title?.trim()) {
+      errors.title = 'Task title is required.';
+    }
+
+    if (draft.title && draft.title.trim().length < 3) {
+      errors.title = 'Task title should be at least 3 characters.';
+    }
+
+    if (draft.notes && draft.notes.length > 220) {
+      errors.notes = 'Notes should be under 220 characters.';
+    }
+
+    setTaskErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const saveCurrent = () => {
-    setDataByArea((prev) => {
-      const current = prev[areaKey][activeSection];
+    if (activeSection === 'tasks' && !validateTaskDraft()) return;
+
+    setAreasStore((prev) => {
+      const current = prev.detailByArea[areaKey][activeSection];
 
       if (editingId) {
         const updated = current.map((item) => (item.id === editingId ? { ...item, ...draft } : item));
-        return { ...prev, [areaKey]: { ...prev[areaKey], [activeSection]: updated } };
+        return {
+          ...prev,
+          detailByArea: {
+            ...prev.detailByArea,
+            [areaKey]: {
+              ...prev.detailByArea[areaKey],
+              [activeSection]: updated,
+            },
+          },
+        };
       }
 
       const created = [...current, { id: nextId(current), ...draft }];
-      return { ...prev, [areaKey]: { ...prev[areaKey], [activeSection]: created } };
+      return {
+        ...prev,
+        detailByArea: {
+          ...prev.detailByArea,
+          [areaKey]: {
+            ...prev.detailByArea[areaKey],
+            [activeSection]: created,
+          },
+        },
+      };
     });
 
     resetDraft(activeSection);
@@ -131,9 +136,18 @@ const AreaDetail = () => {
   };
 
   const removeItem = (id) => {
-    setDataByArea((prev) => {
-      const updated = prev[areaKey][activeSection].filter((item) => item.id !== id);
-      return { ...prev, [areaKey]: { ...prev[areaKey], [activeSection]: updated } };
+    setAreasStore((prev) => {
+      const updated = prev.detailByArea[areaKey][activeSection].filter((item) => item.id !== id);
+      return {
+        ...prev,
+        detailByArea: {
+          ...prev.detailByArea,
+          [areaKey]: {
+            ...prev.detailByArea[areaKey],
+            [activeSection]: updated,
+          },
+        },
+      };
     });
     if (editingId === id) resetDraft(activeSection);
   };
@@ -150,17 +164,35 @@ const AreaDetail = () => {
     if (activeSection === 'tasks') {
       return (
         <>
+          <label className="field-label">Title</label>
           <input value={draft.title || ''} onChange={(e) => updateDraft('title', e.target.value)} placeholder="Task title" />
+          {taskErrors.title && <p className="field-error">{taskErrors.title}</p>}
+
+          <label className="field-label">Priority</label>
           <select value={draft.priority || 'P2'} onChange={(e) => updateDraft('priority', e.target.value)}>
             <option>P1</option>
             <option>P2</option>
             <option>P3</option>
           </select>
+
+          <label className="field-label">Status</label>
           <select value={draft.status || 'Open'} onChange={(e) => updateDraft('status', e.target.value)}>
             <option>Open</option>
             <option>In Progress</option>
             <option>Done</option>
           </select>
+
+          <label className="field-label">Estimate</label>
+          <select value={draft.estimate || '30m'} onChange={(e) => updateDraft('estimate', e.target.value)}>
+            <option>15m</option>
+            <option>30m</option>
+            <option>1h</option>
+            <option>2h</option>
+          </select>
+
+          <label className="field-label">Notes (optional)</label>
+          <textarea rows={3} value={draft.notes || ''} onChange={(e) => updateDraft('notes', e.target.value)} placeholder="Execution notes" />
+          {taskErrors.notes && <p className="field-error">{taskErrors.notes}</p>}
         </>
       );
     }
@@ -263,7 +295,18 @@ const AreaDetail = () => {
                 <div className="item-row" key={item.id}>
                   <div className="item-info">
                     <strong>{item.title || item.name}</strong>
-                    <span>{JSON.stringify(item)}</span>
+                    {activeSection === 'tasks' ? (
+                      <>
+                        <div className="task-meta-row">
+                          <span className={`task-chip ${String(item.priority || 'P2').toLowerCase()}`}>{item.priority || 'P2'}</span>
+                          <span className="task-chip muted">{item.status || 'Open'}</span>
+                          <span className="task-chip muted">{item.estimate || '30m'}</span>
+                        </div>
+                        {item.notes ? <span className="task-notes">{item.notes}</span> : null}
+                      </>
+                    ) : (
+                      <span>{JSON.stringify(item)}</span>
+                    )}
                   </div>
                   <div className="row-actions">
                     <button className="area-btn ghost" onClick={() => startEdit(item)}>Edit</button>

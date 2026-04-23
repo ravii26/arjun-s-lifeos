@@ -9,6 +9,13 @@ const AREA_COLORS = {
   Finance: 'var(--accent)',
 };
 
+const TRACKING_LABELS = {
+  Boolean: 'Checkbox completion',
+  Count: 'Count progress',
+  Timer: 'Time tracking',
+  Manual: 'Manual completion',
+};
+
 const useCountUp = (target, duration = 550) => {
   const [value, setValue] = useState(0);
 
@@ -40,25 +47,35 @@ const useCountUp = (target, duration = 550) => {
 };
 
 const Tasks = () => {
-  const [todayTasks, setTodayTasks] = useState([
-    { id: 1, title: 'Finalize architecture deck', area: 'Career', priority: 'P1', type: 'Boolean', done: false },
-    { id: 2, title: '45 min strength training', area: 'Health', priority: 'P2', type: 'Timer', done: true },
-  ]);
-
-  const [backlogTasks, setBacklogTasks] = useState([
-    { id: 3, title: 'Create sprint estimation rubric', area: 'Career', priority: 'P2', type: 'Manual', done: false },
-    { id: 4, title: 'Write investment review note', area: 'Finance', priority: 'P1', type: 'Boolean', done: false },
-  ]);
-
-  const [missedTasks, setMissedTasks] = useState([
-    { id: 5, title: 'Sleep by 11:00 PM', area: 'Health', priority: 'P2', type: 'Boolean', done: false },
+  const [tasks, setTasks] = useState([
+    { id: 1, title: 'Finalize architecture deck', area: 'Career', priority: 'P1', type: 'Boolean', done: false, lane: 'today' },
+    { id: 2, title: '45 min strength training', area: 'Health', priority: 'P2', type: 'Timer', done: true, lane: 'today', timerSeconds: 1380, timerRunning: false },
+    { id: 3, title: 'Create sprint estimation rubric', area: 'Career', priority: 'P2', type: 'Manual', done: false, lane: 'backlog' },
+    { id: 4, title: 'Write investment review note', area: 'Finance', priority: 'P1', type: 'Boolean', done: false, lane: 'backlog' },
+    { id: 5, title: 'Sleep by 11:00 PM', area: 'Health', priority: 'P2', type: 'Boolean', done: false, lane: 'missed' },
   ]);
 
   const [quickOpen, setQuickOpen] = useState(false);
-  const [newTask, setNewTask] = useState({ title: '', area: 'Career', priority: 'P2', type: 'Boolean' });
+  const [newTask, setNewTask] = useState({ title: '', area: 'Career', priority: 'P2', type: 'Boolean', target: 1 });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTasks((prev) => prev.map((task) => (
+        task.type === 'Timer' && task.timerRunning && !task.done
+          ? { ...task, timerSeconds: (task.timerSeconds || 0) + 1 }
+          : task
+      )));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const todayTasks = tasks.filter((task) => task.lane === 'today');
+  const backlogTasks = tasks.filter((task) => task.lane === 'backlog');
+  const missedTasks = tasks.filter((task) => task.lane === 'missed');
 
   const completed = todayTasks.filter((task) => task.done).length;
-  const progress = Math.round((completed / todayTasks.length) * 100);
+  const progress = todayTasks.length ? Math.round((completed / todayTasks.length) * 100) : 0;
   const remaining = todayTasks.length - completed;
   const backlogCount = backlogTasks.length;
   const missedCount = missedTasks.length;
@@ -73,14 +90,84 @@ const Tasks = () => {
 
   const addTask = () => {
     if (!newTask.title.trim()) return;
-    setTodayTasks((prev) => [...prev, { ...newTask, id: Date.now(), done: false }]);
-    setNewTask({ title: '', area: 'Career', priority: 'P2', type: 'Boolean' });
+
+    const target = Math.max(1, Number(newTask.target) || 1);
+    setTasks((prev) => [...prev, {
+      title: newTask.title,
+      area: newTask.area,
+      priority: newTask.priority,
+      type: newTask.type,
+      id: Date.now(),
+      done: false,
+      lane: 'today',
+      target: newTask.type === 'Count' ? target : undefined,
+      progress: newTask.type === 'Count' ? 0 : undefined,
+      timerSeconds: newTask.type === 'Timer' ? 0 : undefined,
+      timerRunning: false,
+    }]);
+    setNewTask({ title: '', area: 'Career', priority: 'P2', type: 'Boolean', target: 1 });
     setQuickOpen(false);
   };
 
   const markTopPriorityDone = () => {
     if (!topPriority) return;
-    setTodayTasks((prev) => prev.map((task) => (task.id === topPriority.id ? { ...task, done: true } : task)));
+    setTasks((prev) => prev.map((task) => (
+      task.id === topPriority.id ? { ...task, done: true, timerRunning: false } : task
+    )));
+  };
+
+  const moveTask = (taskId, lane, done = false) => {
+    setTasks((prev) => prev.map((task) => (
+      task.id === taskId ? { ...task, lane, done, timerRunning: lane === 'today' ? task.timerRunning : false } : task
+    )));
+  };
+
+  const toggleTaskDone = (taskId) => {
+    setTasks((prev) => prev.map((task) => (
+      task.id === taskId
+        ? { ...task, done: !task.done, timerRunning: !task.done ? false : task.timerRunning }
+        : task
+    )));
+  };
+
+  const removeTask = (taskId) => {
+    setTasks((prev) => prev.filter((task) => task.id !== taskId));
+  };
+
+  const toggleTimer = (taskId) => {
+    setTasks((prev) => prev.map((task) => (
+      task.id === taskId && task.type === 'Timer' && task.lane === 'today' && !task.done
+        ? { ...task, timerRunning: !task.timerRunning }
+        : task
+    )));
+  };
+
+  const resetTimer = (taskId) => {
+    setTasks((prev) => prev.map((task) => (
+      task.id === taskId && task.type === 'Timer'
+        ? { ...task, timerSeconds: 0, timerRunning: false }
+        : task
+    )));
+  };
+
+  const shiftTaskCount = (taskId, delta) => {
+    setTasks((prev) => prev.map((task) => {
+      if (task.id !== taskId || task.type !== 'Count') return task;
+      const target = Math.max(1, task.target || 1);
+      const nextProgress = Math.max(0, Math.min(target, (task.progress || 0) + delta));
+      return {
+        ...task,
+        progress: nextProgress,
+        done: nextProgress >= target,
+      };
+    }));
+  };
+
+  const formatTimer = (seconds = 0) => {
+    const hh = String(Math.floor(seconds / 3600)).padStart(2, '0');
+    const mm = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+    const ss = String(seconds % 60).padStart(2, '0');
+    return hh === '00' ? `${mm}:${ss}` : `${hh}:${mm}:${ss}`;
   };
 
   const renderTaskRow = (task, options = {}) => (
@@ -89,7 +176,7 @@ const Tasks = () => {
         <input
           type="checkbox"
           checked={task.done}
-          onChange={() => setTodayTasks((prev) => prev.map((entry) => (entry.id === task.id ? { ...entry, done: !entry.done } : entry)))}
+          onChange={() => toggleTaskDone(task.id)}
         />
       )}
       <div className="task-main">
@@ -98,8 +185,26 @@ const Tasks = () => {
           <span className="dot" style={{ background: AREA_COLORS[task.area] }} />
           <span>{task.area}</span>
           <span>{task.type}</span>
+          <span>{TRACKING_LABELS[task.type]}</span>
           <span className={`badge ${task.priority.toLowerCase()}`}>{task.priority}</span>
+          <span className="badge muted">{task.lane}</span>
         </div>
+        {task.type === 'Count' && (
+          <div className="count-strip">
+            <button className="btn tiny" onClick={() => shiftTaskCount(task.id, -1)} disabled={task.lane !== 'today'}>-</button>
+            <span className="timer-readout">{task.progress || 0}/{task.target || 1}</span>
+            <button className="btn tiny" onClick={() => shiftTaskCount(task.id, 1)} disabled={task.lane !== 'today'}>+</button>
+          </div>
+        )}
+        {task.type === 'Timer' && (
+          <div className="timer-strip">
+            <span className="timer-readout">{formatTimer(task.timerSeconds || 0)}</span>
+            <button className="btn tiny" onClick={() => toggleTimer(task.id)} disabled={task.lane !== 'today' || task.done}>
+              {task.timerRunning ? 'Pause' : 'Start'}
+            </button>
+            <button className="btn tiny ghost" onClick={() => resetTimer(task.id)}>Reset</button>
+          </div>
+        )}
       </div>
       <div className="actions">{options.actions}</div>
     </article>
@@ -142,7 +247,7 @@ const Tasks = () => {
           <div className="progress-track"><div style={{ width: `${progress}%` }} /></div>
           <div className="focus-actions">
             <button className="btn accent" onClick={markTopPriorityDone} disabled={!topPriority}>Mark done</button>
-            <button className="btn ghost" onClick={() => topPriority && setBacklogTasks((prev) => [...prev, { ...topPriority, id: Date.now(), done: false }])} disabled={!topPriority}>Defer to backlog</button>
+            <button className="btn ghost" onClick={() => topPriority && moveTask(topPriority.id, 'backlog', false)} disabled={!topPriority}>Defer to backlog</button>
           </div>
         </article>
 
@@ -171,6 +276,15 @@ const Tasks = () => {
                 <option>Timer</option>
                 <option>Manual</option>
               </select>
+              {newTask.type === 'Count' && (
+                <input
+                  type="number"
+                  min={1}
+                  value={newTask.target}
+                  onChange={(event) => setNewTask((prev) => ({ ...prev, target: Number(event.target.value) || 1 }))}
+                  placeholder="Count target"
+                />
+              )}
               <div className="quick-actions">
                 <button className="btn accent" onClick={addTask}>Add Task</button>
                 <button className="btn ghost" onClick={() => setQuickOpen(false)}>Cancel</button>
@@ -187,7 +301,7 @@ const Tasks = () => {
             {todayTasks.map((task) =>
               renderTaskRow(task, {
                 actions: (
-                  <button className="btn tiny" onClick={() => setBacklogTasks((prev) => [...prev, { ...task, id: Date.now(), done: false }])}>↗</button>
+                  <button className="btn tiny" onClick={() => moveTask(task.id, 'backlog', false)}>↗</button>
                 ),
               })
             )}
@@ -205,10 +319,7 @@ const Tasks = () => {
                 actions: (
                   <button
                     className="btn tiny"
-                    onClick={() => {
-                      setTodayTasks((prev) => [...prev, { ...task, id: Date.now(), done: false }]);
-                      setBacklogTasks((prev) => prev.filter((entry) => entry.id !== task.id));
-                    }}
+                    onClick={() => moveTask(task.id, 'today', false)}
                   >
                     +
                   </button>
@@ -228,14 +339,11 @@ const Tasks = () => {
                   <>
                     <button
                       className="btn tiny"
-                      onClick={() => {
-                        setTodayTasks((prev) => [...prev, { ...task, id: Date.now(), done: false }]);
-                        setMissedTasks((prev) => prev.filter((entry) => entry.id !== task.id));
-                      }}
+                      onClick={() => moveTask(task.id, 'today', false)}
                     >
                       Retry
                     </button>
-                    <button className="btn tiny ghost" onClick={() => setMissedTasks((prev) => prev.filter((entry) => entry.id !== task.id))}>Dismiss</button>
+                    <button className="btn tiny ghost" onClick={() => removeTask(task.id)}>Dismiss</button>
                   </>
                 ),
               })

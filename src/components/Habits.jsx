@@ -11,6 +11,12 @@ const AREA_COLORS = {
 
 const defaultHistory = () => [false, false, false, false, false, false, false];
 
+const TRACKING_LABELS = {
+  Boolean: 'Check once',
+  Count: 'Count reps',
+  Timer: 'Track minutes',
+};
+
 const useCountUp = (target, duration = 600) => {
   const [value, setValue] = useState(0);
 
@@ -49,6 +55,9 @@ const Habits = () => {
       type: 'Count',
       target: 8,
       progress: 6,
+      timerSeconds: 0,
+      timerRunning: false,
+      status: 'active',
       streak: 14,
       bestStreak: 21,
       history: [true, true, false, true, true, true, false],
@@ -60,6 +69,9 @@ const Habits = () => {
       type: 'Timer',
       target: 60,
       progress: 35,
+      timerSeconds: 2100,
+      timerRunning: false,
+      status: 'active',
       streak: 7,
       bestStreak: 16,
       history: [true, true, true, false, true, true, true],
@@ -71,6 +83,9 @@ const Habits = () => {
       type: 'Boolean',
       target: 1,
       progress: 0,
+      timerSeconds: 0,
+      timerRunning: false,
+      status: 'active',
       streak: 3,
       bestStreak: 9,
       history: [false, true, true, true, false, false, true],
@@ -79,18 +94,41 @@ const Habits = () => {
 
   const [adding, setAdding] = useState(false);
   const [newHabit, setNewHabit] = useState({ name: '', area: 'Health', type: 'Boolean', target: 1 });
+  const [statusFilter, setStatusFilter] = useState('active');
 
-  const topStreak = Math.max(...habits.map((habit) => habit.bestStreak));
-  const completedToday = habits.filter((habit) => {
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHabits((prev) => prev.map((habit) => {
+        if (habit.type !== 'Timer' || !habit.timerRunning || habit.status !== 'active') return habit;
+
+        const nextSeconds = (habit.timerSeconds || 0) + 1;
+        const nextMinutes = Math.floor(nextSeconds / 60);
+        return {
+          ...habit,
+          timerSeconds: nextSeconds,
+          progress: Math.min(habit.target, nextMinutes),
+        };
+      }));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const filteredHabits = habits.filter((habit) => habit.status === statusFilter);
+
+  const topStreak = habits.length ? Math.max(...habits.map((habit) => habit.bestStreak)) : 0;
+  const activeHabits = habits.filter((habit) => habit.status === 'active');
+  const completedToday = activeHabits.filter((habit) => {
     if (habit.type === 'Boolean') return habit.progress >= 1;
     return habit.progress >= habit.target;
   }).length;
-  const completionPct = Math.round((completedToday / habits.length) * 100);
-  const totalProgress = habits.reduce((sum, habit) => {
+  const completionPct = activeHabits.length ? Math.round((completedToday / activeHabits.length) * 100) : 0;
+  const totalProgress = activeHabits.reduce((sum, habit) => {
     const current = habit.type === 'Boolean' ? Math.min(1, habit.progress) : Math.min(habit.target, habit.progress);
-    return sum + (current / habit.target) * 100;
+    const safeTarget = Math.max(1, habit.target || 1);
+    return sum + (current / safeTarget) * 100;
   }, 0);
-  const avgProgress = Math.round(totalProgress / habits.length);
+  const avgProgress = activeHabits.length ? Math.round(totalProgress / activeHabits.length) : 0;
 
   const slotsText = `${habits.length} / 8 slots used`;
 
@@ -110,6 +148,31 @@ const Habits = () => {
     setHabits((prev) => prev.map((habit) => (habit.id === habitId ? updater(habit) : habit)));
   };
 
+  const moveHabitStatus = (habitId, status) => {
+    updateHabit(habitId, (entry) => ({
+      ...entry,
+      status,
+      timerRunning: status === 'active' ? entry.timerRunning : false,
+    }));
+  };
+
+  const toggleTimer = (habit) => {
+    if (habit.type !== 'Timer' || habit.status !== 'active') return;
+    updateHabit(habit.id, (entry) => ({ ...entry, timerRunning: !entry.timerRunning }));
+  };
+
+  const resetTimer = (habit) => {
+    if (habit.type !== 'Timer') return;
+    updateHabit(habit.id, (entry) => ({ ...entry, timerRunning: false, timerSeconds: 0, progress: 0 }));
+  };
+
+  const formatTimer = (seconds = 0) => {
+    const hh = String(Math.floor(seconds / 3600)).padStart(2, '0');
+    const mm = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+    const ss = String(seconds % 60).padStart(2, '0');
+    return hh === '00' ? `${mm}:${ss}` : `${hh}:${mm}:${ss}`;
+  };
+
   const logBoolean = (habit) => {
     updateHabit(habit.id, (entry) => {
       const done = entry.progress >= 1;
@@ -124,6 +187,7 @@ const Habits = () => {
   };
 
   const shiftCount = (habit, delta) => {
+    if (habit.type !== 'Count') return;
     updateHabit(habit.id, (entry) => ({
       ...entry,
       progress: Math.max(0, Math.min(entry.target, entry.progress + delta)),
@@ -141,6 +205,9 @@ const Habits = () => {
         ...newHabit,
         target: Number(newHabit.target) || 1,
         progress: 0,
+        timerSeconds: 0,
+        timerRunning: false,
+        status: 'active',
         streak: 0,
         bestStreak: 0,
         history: defaultHistory(),
@@ -156,16 +223,24 @@ const Habits = () => {
       <header className="habits-head">
         <div>
           <h1>Habits</h1>
-          <p>{habits.length} active · {topStreak} day best streak</p>
+          <p>{activeHabits.length} active · {topStreak} day best streak</p>
           <small>{slotsText}</small>
         </div>
         <button className="btn ghost" onClick={() => setAdding((prev) => !prev)}>{adding ? 'Close' : '+ New Habit'}</button>
       </header>
 
+      <div className="habit-status-filters">
+        {['active', 'paused', 'archived'].map((status) => (
+          <button key={status} className={`btn ${statusFilter === status ? 'accent' : 'ghost'}`} onClick={() => setStatusFilter(status)}>
+            {status}
+          </button>
+        ))}
+      </div>
+
       <section className="habits-summary">
         <article>
           <span className="mono">Completed today</span>
-          <strong>{animatedCompleted}/{habits.length}</strong>
+          <strong>{animatedCompleted}/{activeHabits.length || 0}</strong>
         </article>
         <article>
           <span className="mono">Longest current streak</span>
@@ -221,7 +296,7 @@ const Habits = () => {
       )}
 
       <section className="habit-list">
-        {habits.map((habit) => (
+        {filteredHabits.map((habit) => (
           <article className="habit-item" key={habit.id}>
             <div className="habit-top">
               <div>
@@ -230,7 +305,9 @@ const Habits = () => {
                   <span className="dot" style={{ background: AREA_COLORS[habit.area] }} />
                   <span>{habit.area}</span>
                   <span>{habit.type}</span>
+                  <span>{TRACKING_LABELS[habit.type]}</span>
                   <strong>🔥 {habit.streak}</strong>
+                  <span className="habit-status-chip">{habit.status}</span>
                 </div>
               </div>
 
@@ -241,20 +318,38 @@ const Habits = () => {
                   </button>
                 )}
 
-                {habit.type !== 'Boolean' && (
+                {habit.type === 'Count' && (
                   <div className="counter">
                     <button className="btn tiny" onClick={() => shiftCount(habit, -1)}>-</button>
-                    <b>{habit.progress}/{habit.target}{habit.type === 'Timer' ? 'm' : ''}</b>
+                    <b>{habit.progress}/{habit.target}</b>
                     <button className="btn tiny" onClick={() => shiftCount(habit, 1)}>+</button>
                   </div>
                 )}
+
+                {habit.type === 'Timer' && <span className="timer-note">Use Start/Pause to track time</span>}
               </div>
             </div>
+
+            {habit.type === 'Timer' && (
+              <div className="habit-timer-strip">
+                <span className="habit-timer-readout">{formatTimer(habit.timerSeconds || 0)}</span>
+                <button className="btn tiny" onClick={() => toggleTimer(habit)} disabled={habit.status !== 'active'}>
+                  {habit.timerRunning ? 'Pause' : 'Start'}
+                </button>
+                <button className="btn tiny ghost" onClick={() => resetTimer(habit)}>Reset</button>
+              </div>
+            )}
 
             <div className="habit-progress">
               <div className="habit-progress-head">
                 <span>Today</span>
-                <strong>{habit.type === 'Boolean' ? (habit.progress >= 1 ? 'Done' : 'Open') : `${habit.progress}/${habit.target}${habit.type === 'Timer' ? 'm' : ''}`}</strong>
+                <strong>
+                  {habit.type === 'Boolean'
+                    ? (habit.progress >= 1 ? 'Done' : 'Open')
+                    : habit.type === 'Timer'
+                      ? `${habit.progress}/${habit.target} min`
+                      : `${habit.progress}/${habit.target}`}
+                </strong>
               </div>
               <div className="habit-progress-track">
                 <div style={{ width: `${Math.min(100, Math.round((habit.type === 'Boolean' ? Math.min(1, habit.progress) : habit.progress) / habit.target * 100))}%` }} />
@@ -266,8 +361,24 @@ const Habits = () => {
                 <span key={idx} className={`day ${day ? 'on' : 'off'} ${idx === habit.history.length - 1 ? 'today' : ''}`} />
               ))}
             </div>
+
+            <div className="habit-status-actions">
+              {habit.status === 'active' && (
+                <button className="btn tiny ghost" onClick={() => moveHabitStatus(habit.id, 'paused')}>Pause</button>
+              )}
+              {habit.status === 'paused' && (
+                <button className="btn tiny ghost" onClick={() => moveHabitStatus(habit.id, 'active')}>Resume</button>
+              )}
+              {habit.status !== 'archived' && (
+                <button className="btn tiny ghost" onClick={() => moveHabitStatus(habit.id, 'archived')}>Archive</button>
+              )}
+              {habit.status === 'archived' && (
+                <button className="btn tiny ghost" onClick={() => moveHabitStatus(habit.id, 'active')}>Restore</button>
+              )}
+            </div>
           </article>
         ))}
+        {!filteredHabits.length && <p className="empty-state">No habits in {statusFilter} state.</p>}
       </section>
     </div>
   );

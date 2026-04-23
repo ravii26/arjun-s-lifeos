@@ -231,6 +231,10 @@
   padding: 1px 8px;
 }
 
+.badge.muted {
+  color: var(--text-muted);
+}
+
 .badge.p1 {
   color: var(--red);
   border-color: var(--red);
@@ -249,6 +253,31 @@
   display: flex;
   gap: 6px;
   align-items: center;
+}
+
+.timer-strip {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.count-strip {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.timer-readout {
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
 }
 
 @keyframes rise-in {
