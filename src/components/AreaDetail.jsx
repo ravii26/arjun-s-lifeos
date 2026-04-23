@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import '../styles/design-system.css';
 import './AreaDetail.css';
 import { AREA_META, loadAreasStore, saveAreasStore } from '../lib/areasStore';
+import { areaKeyFromDomain, loadLearningGraphStore } from '../lib/learningGraphStore';
 
 const SECTIONS = [
   { key: 'tasks', label: 'Tasks' },
@@ -30,6 +31,7 @@ const AreaDetail = () => {
 
   const [activeSection, setActiveSection] = useState('tasks');
   const [areasStore, setAreasStore] = useState(loadAreasStore);
+  const [learningStore, setLearningStore] = useState(loadLearningGraphStore);
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(EMPTY_BY_SECTION.tasks);
   const [taskErrors, setTaskErrors] = useState({});
@@ -37,6 +39,17 @@ const AreaDetail = () => {
   useEffect(() => {
     saveAreasStore(areasStore);
   }, [areasStore]);
+
+  useEffect(() => {
+    const onStorage = (event) => {
+      if (event.key === 'lifeos.learning-graph.v1') {
+        setLearningStore(loadLearningGraphStore());
+      }
+    };
+
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   if (!area) {
     return (
@@ -51,6 +64,18 @@ const AreaDetail = () => {
 
   const detailByArea = areasStore.detailByArea || {};
   const sectionItems = detailByArea[areaKey]?.[activeSection] || [];
+
+  const learnByArea = useMemo(() => {
+    const toArea = (entry) => entry.areaKey || areaKeyFromDomain(entry.domain);
+
+    const topics = (learningStore.topics || []).filter((entry) => toArea(entry) === areaKey);
+    const courses = (learningStore.courses || []).filter((entry) => toArea(entry) === areaKey);
+    const resources = (learningStore.resources || []).filter((entry) => toArea(entry) === areaKey);
+    const notes = (learningStore.notes || []).filter((entry) => toArea(entry) === areaKey);
+    const notebooks = (learningStore.notebooks || []).filter((entry) => toArea(entry) === areaKey);
+
+    return { topics, courses, resources, notes, notebooks };
+  }, [learningStore, areaKey]);
 
   const resetDraft = (sectionKey) => {
     setEditingId(null);
@@ -273,6 +298,41 @@ const AreaDetail = () => {
             {section.label}
           </button>
         ))}
+      </section>
+
+      <section className="learn-link-panel">
+        <header className="learn-link-head">
+          <h3>Connected Learning</h3>
+          <button className="area-btn ghost" onClick={() => navigate('/learn')}>Open Learn</button>
+        </header>
+
+        <div className="learn-link-grid">
+          <article className="learn-link-card">
+            <small>Topics</small>
+            <strong>{learnByArea.topics.length}</strong>
+            <span>{learnByArea.topics.slice(0, 2).map((item) => item.name).join(' • ') || 'No linked topics yet'}</span>
+          </article>
+          <article className="learn-link-card">
+            <small>Courses</small>
+            <strong>{learnByArea.courses.length}</strong>
+            <span>{learnByArea.courses.slice(0, 2).map((item) => item.name).join(' • ') || 'No linked courses yet'}</span>
+          </article>
+          <article className="learn-link-card">
+            <small>Resources</small>
+            <strong>{learnByArea.resources.length}</strong>
+            <span>{learnByArea.resources.slice(0, 2).map((item) => item.title).join(' • ') || 'No linked resources yet'}</span>
+          </article>
+          <article className="learn-link-card">
+            <small>Notes</small>
+            <strong>{learnByArea.notes.length}</strong>
+            <span>{learnByArea.notes.slice(0, 2).map((item) => item.title).join(' • ') || 'No linked notes yet'}</span>
+          </article>
+          <article className="learn-link-card">
+            <small>Notebooks</small>
+            <strong>{learnByArea.notebooks.length}</strong>
+            <span>{learnByArea.notebooks.slice(0, 2).map((item) => item.name).join(' • ') || 'No linked notebooks yet'}</span>
+          </article>
+        </div>
       </section>
 
       <section className="crud-layout">

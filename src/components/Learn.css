@@ -4,6 +4,12 @@
   gap: 16px;
 }
 
+.learn-area-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .learn-snapshot-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -17,18 +23,6 @@
   padding: 12px;
   animation: rise-in 0.4s ease;
   transition: transform 0.2s ease, border-color 0.2s ease;
-
-  @keyframes rise-in {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
 }
 
 .learn-snapshot-card:hover {
@@ -58,13 +52,10 @@
 
 .learn-tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
 }
 
-    .learn-snapshot-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
 .tab-btn {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -251,6 +242,7 @@
 .filters-row input,
 .filters-row select,
 .quick-add input,
+.quick-add select,
 .note-editor textarea,
 .note-editor input,
 .note-editor select {
@@ -310,6 +302,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+}
+
+.course-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .status-badge {
@@ -470,6 +469,33 @@
   font-family: var(--font-display);
 }
 
+.note-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.note-editor .sheet-header {
+  margin-bottom: 4px;
+}
+
+.editor-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  border: none;
+  border-bottom: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-primary);
+  padding: 6px 0;
+  width: 100%;
+  outline: none;
+}
+
+.editor-title:focus {
+  border-bottom-color: var(--accent);
+}
+
 .sheet section {
   margin-top: 12px;
 }
@@ -488,8 +514,26 @@
 .quick-add {
   margin-top: 8px;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+}
+
+.empty-panel,
+.empty-state {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 13px;
+}
+
+.empty-panel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .resource-row {
@@ -521,14 +565,31 @@
   margin-bottom: 5px;
 }
 
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 980px) {
+  .learn-snapshot-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .learn-tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .active-course-hero,
   .course-form,
-  .resource-row {
+  .resource-row,
+  .quick-add {
     grid-template-columns: 1fr;
   }
 
@@ -553,4 +614,95 @@
     border-top: 1px solid var(--border-strong);
     border-radius: 24px 24px 0 0;
   }
+}
+
+@media (max-width: 640px) {
+  .learn-snapshot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .learn-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .empty-panel {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ── Topic card actions ── */
+.topic-card-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.danger-text {
+  color: var(--red) !important;
+}
+
+/* ── Skill slider / input row ── */
+.skill-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.skill-input-row label {
+  white-space: nowrap;
+  min-width: 70px;
+}
+
+.skill-slider,
+.skill-input-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent);
+  height: 6px;
+  cursor: pointer;
+}
+
+/* ── Delete Confirmation Dialog ── */
+.confirm-backdrop {
+  justify-content: center;
+  align-items: center;
+}
+
+.confirm-dialog {
+  width: min(400px, 90vw);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  animation: rise-in 0.25s ease;
+}
+
+.confirm-dialog h3 {
+  margin: 0 0 8px;
+  color: var(--red);
+  font-family: var(--font-display);
+  font-size: 18px;
+}
+
+.confirm-dialog p {
+  margin: 0 0 6px;
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+}
+
+.confirm-dialog .sheet-actions {
+  margin-top: 16px;
+}
+
+.danger-btn {
+  background: var(--red) !important;
+  border-color: var(--red) !important;
+  color: #fff !important;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

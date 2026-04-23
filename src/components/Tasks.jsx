@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import '../styles/design-system.css';
 import './Tasks.css';
+import { loadTasksStore, saveTasksStore } from '../lib/tasksStore';
 
 const AREA_COLORS = {
   Career: 'var(--blue)',
@@ -47,13 +48,12 @@ const useCountUp = (target, duration = 550) => {
 };
 
 const Tasks = () => {
-  const [tasks, setTasks] = useState([
-    { id: 1, title: 'Finalize architecture deck', area: 'Career', priority: 'P1', type: 'Boolean', done: false, lane: 'today' },
-    { id: 2, title: '45 min strength training', area: 'Health', priority: 'P2', type: 'Timer', done: true, lane: 'today', timerSeconds: 1380, timerRunning: false },
-    { id: 3, title: 'Create sprint estimation rubric', area: 'Career', priority: 'P2', type: 'Manual', done: false, lane: 'backlog' },
-    { id: 4, title: 'Write investment review note', area: 'Finance', priority: 'P1', type: 'Boolean', done: false, lane: 'backlog' },
-    { id: 5, title: 'Sleep by 11:00 PM', area: 'Health', priority: 'P2', type: 'Boolean', done: false, lane: 'missed' },
-  ]);
+  const [tasks, setTasks] = useState(() => loadTasksStore());
+
+  // Persist on every change
+  useEffect(() => {
+    saveTasksStore(tasks);
+  }, [tasks]);
 
   const [quickOpen, setQuickOpen] = useState(false);
   const [newTask, setNewTask] = useState({ title: '', area: 'Career', priority: 'P2', type: 'Boolean', target: 1 });
