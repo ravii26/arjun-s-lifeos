@@ -47,7 +47,7 @@ const useCountUp = (target, duration = 650) => {
   return value;
 };
 
-const Settings = () => {
+const Settings = ({ onLogout }) => {
   const [activeSection, setActiveSection] = useState('Profile');
   const [editingName, setEditingName] = useState(false);
 
@@ -156,6 +156,20 @@ const Settings = () => {
       </div>
       <div className="stats-line mono">
         {profile.stats.tasksCompleted} tasks completed · {profile.stats.habitsLogged} habits logged · {profile.stats.hoursTracked}h tracked
+      </div>
+
+      <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--border)' }}>
+        <button 
+           className="danger" 
+           onClick={() => {
+             localStorage.removeItem('lifeos_auth');
+             localStorage.removeItem('lifeos_onboarded');
+             if (onLogout) onLogout();
+           }}
+           style={{ border: '1px solid var(--orange)', background: 'var(--surface)', color: 'var(--orange)', padding: '10px 16px', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontFamily: 'var(--font-ui)', fontWeight: '500' }}
+        >
+          Sign Out of Instance
+        </button>
       </div>
     </section>
   );

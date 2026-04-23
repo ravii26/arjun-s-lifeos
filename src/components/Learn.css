@@ -137,7 +137,7 @@
 
 .progress-track {
   width: 100%;
-  height: 8px;
+  height: 10px;
   border-radius: 999px;
   background: var(--border);
   overflow: hidden;
@@ -160,6 +160,12 @@
   align-items: center;
   gap: 8px;
   margin-top: 10px;
+}
+
+.hero-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .next-action-row span,
@@ -400,7 +406,7 @@
 
 .skill-track {
   flex: 1;
-  height: 6px;
+  height: 10px;
   border-radius: 999px;
   background: var(--border);
   overflow: hidden;
@@ -436,6 +442,10 @@
   color: var(--text-secondary);
   font-family: var(--font-ui);
   font-size: 13px;
+}
+
+.note-card-actions {
+  margin: 8px 0;
 }
 
 .sheet-backdrop {

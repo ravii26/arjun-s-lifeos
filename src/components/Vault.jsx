@@ -498,7 +498,7 @@ const Vault = () => {
         <div className="tag-scroll">
           {TAGS.map((tag) => (
             <button key={tag} className={`vault-chip ${tagFilter === tag ? 'selected' : ''}`} onClick={() => setTagFilter(tag)}>
-              {tag}
+              {tag === 'all' ? 'All Tags' : tag}
             </button>
           ))}
         </div>
@@ -511,7 +511,7 @@ const Vault = () => {
               onClick={() => setAreaFilter(area)}
               style={{ borderColor: area === 'all' ? 'var(--border)' : AREA_COLORS[area] }}
             >
-              {area}
+              {area === 'all' ? 'All Areas' : area}
             </button>
           ))}
         </div>

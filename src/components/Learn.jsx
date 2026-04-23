@@ -581,6 +581,10 @@ const Learn = () => {
     setConfirmDelete(null);
   };
 
+  const openEntityDetail = (type, id) => {
+    navigate(`/learn/${type}/${id}`, { state: { from: `${location.pathname}${location.search}` } });
+  };
+
   const renderActiveLearning = () => (
     <div className="learn-tab-content">
       {!activeVisibleCourse && (
@@ -619,9 +623,14 @@ const Learn = () => {
             )}
           </div>
         </div>
-        <button className="primary-button" onClick={continueCourse} disabled={activeVisibleCourse.status === 'Completed'}>
-          {activeVisibleCourse.status === 'Completed' ? 'Completed' : 'Continue'}
-        </button>
+        <div className="hero-actions">
+          <button className="primary-button" onClick={continueCourse} disabled={activeVisibleCourse.status === 'Completed'}>
+            {activeVisibleCourse.status === 'Completed' ? 'Completed' : 'Continue'}
+          </button>
+          <button className="secondary-button" onClick={() => openEntityDetail('courses', activeVisibleCourse.id)}>
+            View Details
+          </button>
+        </div>
       </div>
       )}
 
@@ -677,6 +686,7 @@ const Learn = () => {
               <span className={`status-badge ${course.status.toLowerCase()}`}>{course.status}</span>
               <span className="mono-caption">{course.progress}%</span>
               <div className="course-actions">
+                <button className="secondary-button" onClick={() => openEntityDetail('courses', course.id)}>Details</button>
                 {course.status !== 'Active' && (
                   <button className="secondary-button" onClick={() => setCourseStatus(course.id, 'Active')}>Set active</button>
                 )}
@@ -766,7 +776,7 @@ const Learn = () => {
               <p className="mono-caption">{linkedNoteCount} notes · {linkedCourseCount} courses</p>
               <p className="mono-caption">Last studied: {topic.lastStudied}</p>
               <div className="topic-card-actions">
-                <button className="ghost-link" onClick={() => setSelectedTopic(topic)}>Open</button>
+                <button className="ghost-link" onClick={() => openEntityDetail('topics', topic.id)}>Open</button>
                 <button className="ghost-link" onClick={() => openTopicEdit(topic)}>Edit</button>
                 <button className="ghost-link danger-text" onClick={() => setConfirmDelete({ type: 'topic', id: topic.id, name: topic.name })}>Delete</button>
               </div>
@@ -788,13 +798,17 @@ const Learn = () => {
             <section>
               <h5>Linked Notes</h5>
               {notes.filter((note) => note.topicId === selectedTopic.id).length > 0
-                ? notes.filter((note) => note.topicId === selectedTopic.id).map((note) => <button key={note.id} className="ghost-link left">{note.title}</button>)
+                ? notes.filter((note) => note.topicId === selectedTopic.id).map((note) => (
+                  <button key={note.id} className="ghost-link left" onClick={() => openEntityDetail('notes', note.id)}>{note.title}</button>
+                ))
                 : <p className="mono-caption">No linked notes yet</p>}
             </section>
             <section>
               <h5>Linked Courses</h5>
               {courses.filter((course) => (course.topicIds || []).includes(selectedTopic.id)).length > 0
-                ? courses.filter((course) => (course.topicIds || []).includes(selectedTopic.id)).map((course) => <button key={course.id} className="ghost-link left">{course.name}</button>)
+                ? courses.filter((course) => (course.topicIds || []).includes(selectedTopic.id)).map((course) => (
+                  <button key={course.id} className="ghost-link left" onClick={() => openEntityDetail('courses', course.id)}>{course.name}</button>
+                ))
                 : <p className="mono-caption">No linked courses yet</p>}
             </section>
             <section>
@@ -890,6 +904,9 @@ const Learn = () => {
               <div className="course-item-right">
                 <span className="chip-chip">{notesCount} notes</span>
                 <span className="chip-chip">{resourcesCount} linked resources</span>
+                <button className="secondary-button" onClick={() => openEntityDetail('notebooks', notebook.id)}>
+                  Details
+                </button>
                 <button className="secondary-button" onClick={() => {
                   setNoteFilterNotebookId(String(notebook.id));
                   setActiveTab('Notes');
@@ -956,6 +973,9 @@ const Learn = () => {
           <article key={note.id} className="note-card" onClick={() => setNoteEditing(note)}>
             <h4>{note.title}</h4>
             <p>{note.content}</p>
+            <div className="note-card-actions" onClick={(event) => event.stopPropagation()}>
+              <button className="ghost-link" onClick={() => openEntityDetail('notes', note.id)}>Open details</button>
+            </div>
             <div className="note-meta">
               <span className="chip-chip">{note.type}</span>
               {note.topicId && (
@@ -1095,6 +1115,7 @@ const Learn = () => {
                 </div>
               </div>
               <div className="resource-actions">
+                <button className="secondary-button" onClick={() => openEntityDetail('resources', resource.id)}>Details</button>
                 <button className="secondary-button" onClick={() => convertResourceToNote(resource)}>➜ Note</button>
                 <button className="secondary-button" onClick={() => convertResourceToTask(resource)}>⚡ Task</button>
                 <button className="secondary-button" onClick={() => openResourceEdit(resource)}>Edit</button>

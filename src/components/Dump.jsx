@@ -163,8 +163,45 @@ const Dump = () => {
   const [batchMode, setBatchMode] = useState(false);
   const [batchIndex, setBatchIndex] = useState(0);
 
+  const [isSimulatingBatch, setIsSimulatingBatch] = useState(false);
+  const [simulationId, setSimulationId] = useState(null);
+
   const unprocessed = dumpItems.filter((item) => !item.processed);
   const processed = dumpItems.filter((item) => item.processed);
+
+  const simulateBatchProcessing = () => {
+    setIsSimulatingBatch(true);
+    let i = 0;
+    
+    const unprocList = dumpItems.filter((item) => !item.processed);
+
+    const processNext = () => {
+      if (i >= unprocList.length) {
+        setIsSimulatingBatch(false);
+        setSimulationId(null);
+        return;
+      }
+      
+      const item = unprocList[i];
+      setSimulationId(item.id);
+      
+      setTimeout(() => {
+        const suggestion = item.suggestion || analyzeDump(item.content);
+        const resultLabel = `${suggestion.type} automatically created`;
+        
+        setDumpItems((prev) =>
+          prev.map((it) => (it.id === item.id ? { ...it, processed: true, resultType: resultLabel } : it))
+        );
+        
+        setTimeout(() => {
+            i++;
+            processNext();
+        }, 150);
+      }, 700);
+    };
+    
+    processNext();
+  };
 
   const activeBatchItem = batchMode ? unprocessed[batchIndex] : null;
 
@@ -434,16 +471,35 @@ const Dump = () => {
           <span>PROCESS THESE</span>
           <b>{unprocessed.length}</b>
           {unprocessed.length > 1 && (
-            <button
-              className="ghost"
-              onClick={() => {
-                setBatchMode(true);
-                setBatchIndex(0);
-                openConverter(unprocessed[0]);
-              }}
-            >
-              Process all at once
-            </button>
+            <div className="batch-actions" style={{ display: 'flex', gap: '8px' }}>
+              <button
+                className="ghost"
+                onClick={() => {
+                  setBatchMode(true);
+                  setBatchIndex(0);
+                  openConverter(unprocessed[0]);
+                }}
+                disabled={isSimulatingBatch}
+              >
+                Manual Batch
+              </button>
+              <button
+                 className="primary-sm"
+                 style={{ 
+                   animation: isSimulatingBatch ? 'pulse-border 1.5s infinite' : 'none',
+                   background: isSimulatingBatch ? 'var(--teal-dim)' : 'var(--accent)',
+                   color: isSimulatingBatch ? 'var(--teal)' : '#111',
+                   border: 'none',
+                   display: 'flex',
+                   alignItems: 'center',
+                   gap: '6px'
+                 }}
+                 onClick={simulateBatchProcessing}
+                 disabled={isSimulatingBatch}
+               >
+                 ✨ {isSimulatingBatch ? 'Auto-Processing...' : 'Auto-Process All'}
+               </button>
+            </div>
           )}
         </div>
 
@@ -455,15 +511,33 @@ const Dump = () => {
         ) : (
           <div className="dump-list">
             {unprocessed.map((item) => (
-              <article className="dump-item" key={item.id}>
+              <article 
+                className={`dump-item ${simulationId === item.id ? 'simulating' : ''}`} 
+                key={item.id}
+                style={{ 
+                  position: 'relative', 
+                  overflow: 'hidden',
+                  opacity: (isSimulatingBatch && simulationId !== item.id) ? 0.6 : 1,
+                  transition: 'opacity 0.3s ease'
+                }}
+              >
+                {simulationId === item.id && (
+                  <div style={{
+                    position: 'absolute', inset: 0, background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 15%, transparent), transparent)',
+                    animation: 'scan-x 1s linear infinite'
+                  }} />
+                )}
+                
                 <div className="item-main">
                   <span className="time mono">{item.createdAt}</span>
                   <p>{item.content}</p>
-                  <small>Looks like a {item.suggestion.type} →</small>
+                  <small>
+                    {simulationId === item.id ? '🧠 AI analyzing context...' : `Looks like a ${item.suggestion.type} →`}
+                  </small>
                 </div>
                 <div className="item-actions">
-                  <button className="primary-sm" onClick={() => openConverter(item)}>Convert →</button>
-                  <button className="ghost" onClick={() => deleteDump(item.id)}>✕</button>
+                  <button className="primary-sm" onClick={() => openConverter(item)} disabled={isSimulatingBatch}>Convert →</button>
+                  <button className="ghost" onClick={() => deleteDump(item.id)} disabled={isSimulatingBatch}>✕</button>
                 </div>
               </article>
             ))}

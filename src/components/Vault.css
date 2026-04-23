@@ -194,6 +194,11 @@
   color: var(--text-secondary);
   font-family: var(--font-ui);
   font-size: 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .vault-preview.quote {

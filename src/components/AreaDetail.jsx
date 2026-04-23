@@ -303,7 +303,7 @@ const AreaDetail = () => {
       <section className="learn-link-panel">
         <header className="learn-link-head">
           <h3>Connected Learning</h3>
-          <button className="area-btn ghost" onClick={() => navigate('/learn')}>Open Learn</button>
+          <button className="area-btn ghost" onClick={() => navigate(`/learn?area=${areaKey}`)}>Open Learn ↗</button>
         </header>
 
         <div className="learn-link-grid">
@@ -311,26 +311,31 @@ const AreaDetail = () => {
             <small>Topics</small>
             <strong>{learnByArea.topics.length}</strong>
             <span>{learnByArea.topics.slice(0, 2).map((item) => item.name).join(' • ') || 'No linked topics yet'}</span>
+            <button className="area-btn ghost mini" onClick={() => navigate(`/learn?area=${areaKey}&tab=Topics`)}>View ↗</button>
           </article>
           <article className="learn-link-card">
             <small>Courses</small>
             <strong>{learnByArea.courses.length}</strong>
             <span>{learnByArea.courses.slice(0, 2).map((item) => item.name).join(' • ') || 'No linked courses yet'}</span>
+            <button className="area-btn ghost mini" onClick={() => navigate(`/learn?area=${areaKey}&tab=Active+Learning`)}>View ↗</button>
           </article>
           <article className="learn-link-card">
             <small>Resources</small>
             <strong>{learnByArea.resources.length}</strong>
             <span>{learnByArea.resources.slice(0, 2).map((item) => item.title).join(' • ') || 'No linked resources yet'}</span>
+            <button className="area-btn ghost mini" onClick={() => navigate(`/learn?area=${areaKey}&tab=Resources`)}>View ↗</button>
           </article>
           <article className="learn-link-card">
             <small>Notes</small>
             <strong>{learnByArea.notes.length}</strong>
             <span>{learnByArea.notes.slice(0, 2).map((item) => item.title).join(' • ') || 'No linked notes yet'}</span>
+            <button className="area-btn ghost mini" onClick={() => navigate(`/learn?area=${areaKey}&tab=Notes`)}>View ↗</button>
           </article>
           <article className="learn-link-card">
             <small>Notebooks</small>
             <strong>{learnByArea.notebooks.length}</strong>
             <span>{learnByArea.notebooks.slice(0, 2).map((item) => item.name).join(' • ') || 'No linked notebooks yet'}</span>
+            <button className="area-btn ghost mini" onClick={() => navigate(`/learn?area=${areaKey}&tab=Notebooks`)}>View ↗</button>
           </article>
         </div>
       </section>
@@ -355,7 +360,7 @@ const AreaDetail = () => {
                 <div className="item-row" key={item.id}>
                   <div className="item-info">
                     <strong>{item.title || item.name}</strong>
-                    {activeSection === 'tasks' ? (
+                    {activeSection === 'tasks' && (
                       <>
                         <div className="task-meta-row">
                           <span className={`task-chip ${String(item.priority || 'P2').toLowerCase()}`}>{item.priority || 'P2'}</span>
@@ -364,8 +369,28 @@ const AreaDetail = () => {
                         </div>
                         {item.notes ? <span className="task-notes">{item.notes}</span> : null}
                       </>
-                    ) : (
-                      <span>{JSON.stringify(item)}</span>
+                    )}
+                    {activeSection === 'habits' && (
+                      <div className="task-meta-row">
+                        <span className="task-chip muted">{item.target || '1/day'}</span>
+                        <span className="task-chip muted">🔥 {item.streak || 0} streak</span>
+                        <span className={`task-chip ${item.active ? 'p1' : 'muted'}`}>{item.active ? 'Active' : 'Inactive'}</span>
+                      </div>
+                    )}
+                    {activeSection === 'notes' && (
+                      <span className="task-notes">{item.content}</span>
+                    )}
+                    {activeSection === 'resources' && (
+                      <div className="task-meta-row">
+                        <span className="task-chip muted">{item.type}</span>
+                        {item.url && <a className="task-link" href={item.url} target="_blank" rel="noopener noreferrer">{item.url.slice(0, 40)}</a>}
+                      </div>
+                    )}
+                    {activeSection === 'vault' && (
+                      <div className="task-meta-row">
+                        <span className="task-chip muted">{item.type}</span>
+                        <span className="task-notes">{item.content}</span>
+                      </div>
                     )}
                   </div>
                   <div className="row-actions">

@@ -464,6 +464,16 @@
   align-items: center;
 }
 
+@keyframes scan-x {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+.dump-item.simulating {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 1px var(--teal);
+}
+
 @media (max-width: 900px) {
   .dump-snapshot-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

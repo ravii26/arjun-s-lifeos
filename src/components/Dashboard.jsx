@@ -116,6 +116,15 @@ const Dashboard = () => {
   const mm = String(Math.floor((timerSeconds % 3600) / 60)).padStart(2, '0');
   const ss = String(timerSeconds % 60).padStart(2, '0');
 
+  const [centerTab, setCenterTab] = useState('Overview');
+
+  // Random data generator for the mock matrix to keep it mostly static per render
+  const matrixData = useMemo(() => {
+    return Array.from({ length: 14 }).map(() => 
+      Array.from({ length: 7 }).map(() => Math.random() > 0.3 ? Math.random() * 0.8 + 0.2 : 0)
+    );
+  }, []);
+
   return (
     <div className="dashboard-screen">
       <section className="dashboard-col left">
@@ -168,42 +177,90 @@ const Dashboard = () => {
       </section>
 
       <section className="dashboard-col center">
-        <div className="section-head">
-          <h4>Life Areas · This Week</h4>
+        <div className="section-head" style={{ marginBottom: '12px' }}>
+          <h4>{centerTab === 'Overview' ? 'Life Areas · This Week' : 'Deep Insights'}</h4>
+          <div className="chip-row">
+            <button className={`chip ${centerTab === 'Overview' ? 'active' : ''}`} onClick={() => setCenterTab('Overview')}>Overview</button>
+            <button className={`chip ${centerTab === 'Insights' ? 'active' : ''}`} onClick={() => setCenterTab('Insights')}>Insights</button>
+          </div>
         </div>
 
-        <div className="snapshot-grid">
-          <article className="snapshot-card">
-            <small>Execution</small>
-            <strong>{animatedCompletion}%</strong>
-            <span>{doneToday}/{tasks.length} tasks complete</span>
-          </article>
-          <article className="snapshot-card">
-            <small>Habits</small>
-            <strong>{habitDone}/{habits.length}</strong>
-            <span>completed today</span>
-          </article>
-          <article className="snapshot-card">
-            <small>Overall score</small>
-            <strong>{animatedAvgScore}</strong>
-            <span>across all areas</span>
-          </article>
-        </div>
+        {centerTab === 'Overview' && (
+          <>
+            <div className="snapshot-grid">
+              <article className="snapshot-card">
+                <small>Execution</small>
+                <strong>{animatedCompletion}%</strong>
+                <span>{doneToday}/{tasks.length} tasks complete</span>
+              </article>
+              <article className="snapshot-card">
+                <small>Habits</small>
+                <strong>{habitDone}/{habits.length}</strong>
+                <span>completed today</span>
+              </article>
+              <article className="snapshot-card">
+                <small>Overall score</small>
+                <strong>{animatedAvgScore}</strong>
+                <span>across all areas</span>
+              </article>
+            </div>
 
-        <div className="area-grid">
-          {areas.map((area) => (
-            <article className="area-card" key={area.name} style={{ '--ring-score': `${area.score}%` }}>
-              <div className="score-ring" style={{ '--ring-color': AREA_COLORS[area.name], '--score': `${area.score}%` }}>
-                <span>{area.score}</span>
-              </div>
-              <div>
-                <h5 style={{ color: AREA_COLORS[area.name] }}>{area.name}</h5>
-                <p className={`trend ${area.trend.startsWith('+') ? 'up' : area.trend.startsWith('-') ? 'down' : 'flat'}`}>{area.trend}</p>
-                <small>{area.stat}</small>
+            <div className="area-grid">
+              {areas.map((area) => (
+                <article className="area-card" key={area.name} style={{ '--ring-score': `${area.score}%` }}>
+                  <div className="score-ring" style={{ '--ring-color': AREA_COLORS[area.name], '--score': `${area.score}%` }}>
+                    <span>{area.score}</span>
+                  </div>
+                  <div>
+                    <h5 style={{ color: AREA_COLORS[area.name] }}>{area.name}</h5>
+                    <p className={`trend ${area.trend.startsWith('+') ? 'up' : area.trend.startsWith('-') ? 'down' : 'flat'}`}>{area.trend}</p>
+                    <small>{area.stat}</small>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </>
+        )}
+
+        {centerTab === 'Insights' && (
+          <div className="insights-view page-enter">
+            <article className="chart-card">
+              <h4>Momentum Trend</h4>
+              <p className="subtitle">Overall engagement score over the last 10 days</p>
+              <svg viewBox="0 0 400 120" className="area-chart">
+                <defs>
+                  <linearGradient id="gradientPrimary" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.4" />
+                    <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <polyline points="0,110 40,90 80,100 120,60 160,80 200,40 240,50 280,20 320,30 360,10 400,25" fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                <polygon points="0,120 0,110 40,90 80,100 120,60 160,80 200,40 240,50 280,20 320,30 360,10 400,25 400,120" fill="url(#gradientPrimary)" />
+              </svg>
+            </article>
+
+            <article className="chart-card">
+              <h4>Activity Matrix</h4>
+              <p className="subtitle">Daily completions over the last 14 weeks</p>
+              <div className="matrix-wrapper">
+                {matrixData.map((col, colIdx) => (
+                  <div key={colIdx} className="matrix-col">
+                    {col.map((val, cellIdx) => (
+                      <div 
+                        key={cellIdx} 
+                        className="matrix-cell" 
+                        style={{ 
+                          background: val === 0 ? 'var(--surface-raised)' : 'var(--teal)',
+                          opacity: val === 0 ? 1 : val 
+                        }} 
+                      />
+                    ))}
+                  </div>
+                ))}
               </div>
             </article>
-          ))}
-        </div>
+          </div>
+        )}
       </section>
 
       <section className="dashboard-col right">

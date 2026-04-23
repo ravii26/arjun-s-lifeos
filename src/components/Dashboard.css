@@ -64,7 +64,6 @@
   font-family: var(--font-display);
 }
 
-.next-action-card p,
 .area-card p,
 .area-card small,
 .timer-card p,
@@ -72,6 +71,11 @@
 .task-list-card span,
 .task-list-card em {
   color: var(--text-secondary);
+  font-family: var(--font-ui);
+}
+
+.next-action-card p {
+  color: color-mix(in srgb, var(--text-primary) 85%, var(--accent));
   font-family: var(--font-ui);
 }
 
@@ -385,6 +389,97 @@
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/*  Dynamic Insights & Charts  */
+.chip-row {
+  display: flex;
+  gap: 6px;
+}
+
+.chip {
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  padding: 6px 14px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chip.active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--text-primary);
+}
+
+.insights-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chart-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: 16px;
+  animation: rise-in 0.4s ease;
+}
+
+.chart-card h4 {
+  margin: 0 0 4px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+}
+
+.chart-card p.subtitle {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-top: 0;
+  margin-bottom: 24px;
+  font-family: var(--font-ui);
+}
+
+.area-chart {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  animation: chart-draw 1s ease-out;
+}
+
+@keyframes chart-draw {
+  from { opacity: 0; transform: scaleY(0.8) translateY(10px); }
+  to { opacity: 1; transform: scaleY(1) translateY(0); }
+}
+
+.matrix-wrapper {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.matrix-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.matrix-cell {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--teal);
+  transition: transform 0.2s;
+}
+
+.matrix-cell:hover {
+  transform: scale(1.2);
+  z-index: 10;
 }
 
 @media (max-width: 1100px) {

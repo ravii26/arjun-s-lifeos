@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../styles/design-system.css';
 import * as Icons from 'lucide-react'; // Import all icons as a single object
 import { NavLink } from 'react-router-dom';
 import './AppShell.css';
+import CommandPalette from './CommandPalette';
 
 const NAV_GROUPS = [
   {
@@ -35,6 +36,18 @@ const AppShell = ({ children, pageTitle }: { children: React.ReactNode; pageTitl
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobileNavOpen, setMobileNavOpen] = useState(false);
   const [isTimerRunning, setTimerRunning] = useState(true); // Example state for timer
+  const [isCmdPaletteOpen, setCmdPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    const handleGlobalKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCmdPaletteOpen((open) => !open);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKey);
+    return () => window.removeEventListener('keydown', handleGlobalKey);
+  }, []);
 
   return (
     <div className="app-shell">
@@ -96,11 +109,41 @@ const AppShell = ({ children, pageTitle }: { children: React.ReactNode; pageTitl
             <h1>{pageTitle}</h1>
           </div>
 
-          <input type="text" placeholder="Search tasks, habits, notes..." className="shell-search" />
+          <div className="topbar-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button 
+                title="Toggle Focus Mode (Sidebar)"
+                style={{ 
+                  background: isSidebarCollapsed ? 'var(--accent-dim)' : 'transparent', 
+                  border: '1px solid var(--border)', 
+                  borderRadius: 'var(--radius-md)', 
+                  padding: '0 10px', 
+                  height: '36px', 
+                  color: isSidebarCollapsed ? 'var(--accent)' : 'var(--text-secondary)', 
+                  cursor: 'pointer', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '6px' 
+                }}
+                onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
+            >
+              <Icons.Focus size={16} />
+              <span style={{ fontSize: '13px', fontFamily: 'var(--font-ui)' }}>Focus Mode</span>
+            </button>
+            <input 
+              type="text" 
+              placeholder="Search tasks, habits, notes... (Cmd+K)" 
+              className="shell-search" 
+              readOnly 
+              style={{ cursor: 'pointer' }}
+              onClick={() => setCmdPaletteOpen(true)}
+            />
+          </div>
         </header>
 
         <main className="app-main-content page-enter">{children}</main>
       </div>
+
+      <CommandPalette isOpen={isCmdPaletteOpen} onClose={() => setCmdPaletteOpen(false)} />
     </div>
   );
 };
