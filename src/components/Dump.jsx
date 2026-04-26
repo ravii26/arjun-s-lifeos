@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useAppContext } from '../context/AppContext';
 import '../styles/design-system.css';
 import './Dump.css';
 
@@ -165,6 +166,7 @@ const Dump = () => {
 
   const [isSimulatingBatch, setIsSimulatingBatch] = useState(false);
   const [simulationId, setSimulationId] = useState(null);
+  const { addToast } = useAppContext();
 
   const unprocessed = dumpItems.filter((item) => !item.processed);
   const processed = dumpItems.filter((item) => item.processed);
@@ -235,6 +237,16 @@ const Dump = () => {
       },
       ...prev,
     ]);
+
+    addToast({
+      type: 'AI',
+      title: 'Neural link established',
+      desc: `Recognized as ${suggestion.type}. AI suggests prioritizing immediately.`,
+      action: 'File now',
+      onAction: () => {
+         // Logic to auto-file if needed
+      }
+    });
 
     setInput('');
   };

@@ -4,6 +4,7 @@ import * as Icons from 'lucide-react'; // Import all icons as a single object
 import { NavLink } from 'react-router-dom';
 import './AppShell.css';
 import CommandPalette from './CommandPalette';
+import { useAppContext } from '../context/AppContext';
 
 const NAV_GROUPS = [
   {
@@ -37,6 +38,8 @@ const AppShell = ({ children, pageTitle }: { children: React.ReactNode; pageTitl
   const [isMobileNavOpen, setMobileNavOpen] = useState(false);
   const [isTimerRunning, setTimerRunning] = useState(true); // Example state for timer
   const [isCmdPaletteOpen, setCmdPaletteOpen] = useState(false);
+  
+  const { currentVibe, setVibe, toasts, removeToast } = useAppContext();
 
   useEffect(() => {
     const handleGlobalKey = (e: KeyboardEvent) => {
@@ -110,6 +113,28 @@ const AppShell = ({ children, pageTitle }: { children: React.ReactNode; pageTitl
           </div>
 
           <div className="topbar-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <select 
+              value={currentVibe} 
+              onChange={(e) => setVibe(e.target.value)}
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '0 10px',
+                height: '36px',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-ui)',
+                fontSize: '13px',
+                outline: 'none'
+              }}
+            >
+              <option value="default">Default Vibe</option>
+              <option value="morning">Morning Routine</option>
+              <option value="deepWork">Deep Work</option>
+              <option value="evening">Evening Wind-Down</option>
+            </select>
+
             <button 
                 title="Toggle Focus Mode (Sidebar)"
                 style={{ 
@@ -144,6 +169,34 @@ const AppShell = ({ children, pageTitle }: { children: React.ReactNode; pageTitl
       </div>
 
       <CommandPalette isOpen={isCmdPaletteOpen} onClose={() => setCmdPaletteOpen(false)} />
+
+      {/* Global Toasts Overlay */}
+      <div className="toast-overlay">
+        {toasts.map((toast) => (
+          <article className={`toast-card toast-${toast.type.toLowerCase()}`} key={toast.id}>
+            <div className="toast-icon">
+              {toast.type === 'SUCCESS' ? '✓' : toast.type === 'ERROR' ? '×' : toast.type === 'WARNING' ? '⚠' : toast.type === 'INFO' ? 'ℹ' : '✦'}
+            </div>
+            <div className="toast-body">
+              <strong>{toast.title}</strong>
+              <p>{toast.desc}</p>
+            </div>
+            {toast.action && (
+              <button 
+                className="toast-action" 
+                onClick={() => {
+                  toast.onAction?.();
+                  removeToast(toast.id);
+                }}
+              >
+                {toast.action}
+              </button>
+            )}
+            <button className="toast-close" onClick={() => removeToast(toast.id)}>✕</button>
+            <div className="toast-timer-bar" />
+          </article>
+        ))}
+      </div>
     </div>
   );
 };

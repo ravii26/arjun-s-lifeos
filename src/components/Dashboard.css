@@ -135,7 +135,7 @@
   margin: 6px 0;
 }
 
-.progress-track > div {
+.progress-track>div {
   height: 100%;
   background: var(--accent);
   transition: width 0.55s ease;
@@ -162,9 +162,13 @@
   transform: translateX(4px);
 }
 
-.task-list-card li:last-child { border-bottom: none; }
+.task-list-card li:last-child {
+  border-bottom: none;
+}
 
-.task-list-card input { accent-color: var(--accent); }
+.task-list-card input {
+  accent-color: var(--accent);
+}
 
 .task-list-card .done {
   text-decoration: line-through;
@@ -340,7 +344,7 @@
   overflow: hidden;
 }
 
-.mini-track > div {
+.mini-track>div {
   height: 100%;
   background: var(--teal);
   transition: width 0.55s ease;
@@ -359,7 +363,9 @@
   border-bottom: 1px solid var(--border);
 }
 
-.habit-row:last-child { border-bottom: none; }
+.habit-row:last-child {
+  border-bottom: none;
+}
 
 .habit-controls b {
   color: var(--text-primary);
@@ -451,8 +457,15 @@
 }
 
 @keyframes chart-draw {
-  from { opacity: 0; transform: scaleY(0.8) translateY(10px); }
-  to { opacity: 1; transform: scaleY(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scaleY(0.8) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
 }
 
 .matrix-wrapper {

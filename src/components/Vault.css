@@ -1,11 +1,51 @@
 .vault-screen {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  background: radial-gradient(circle at top right, #161321 0%, var(--surface) 50%);
-  border: 1px solid var(--border);
+  padding: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.vault-screen.dragging {
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
   border-radius: var(--radius-xl);
-  padding: 16px;
+  transform: scale(0.995);
+}
+
+.vault-dropzone-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  background: color-mix(in srgb, var(--background) 80%, transparent);
+  backdrop-filter: blur(12px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 4px dashed var(--accent);
+  border-radius: var(--radius-xl);
+  pointer-events: none;
+  animation: auth-slide-up 0.4s ease;
+}
+
+.vault-dropzone-box {
+  background: var(--surface);
+  padding: 48px;
+  border-radius: var(--radius-xl);
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  border: 1px solid var(--border-strong);
+}
+
+.vault-dropzone-box h2 {
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  font-family: var(--font-display);
+}
+
+.vault-dropzone-box p {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 14px;
 }
 
 .vault-snapshot-grid {
@@ -145,8 +185,31 @@
 
 .vault-items.grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.vault-items.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 24px;
+}
+
+.vault-items.gallery .vault-card {
+  padding: 24px;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.gallery-media {
+  flex: 1;
+  border-radius: var(--radius-md);
+  background-size: cover;
+  background-position: center;
+  margin: 12px 0;
+  width: 100%;
 }
 
 .vault-items.list {
@@ -185,9 +248,17 @@
   border-radius: 50%;
 }
 
-.dot-low { background: var(--text-muted); }
-.dot-mid { background: var(--orange); }
-.dot-high { background: var(--red); }
+.dot-low {
+  background: var(--text-muted);
+}
+
+.dot-mid {
+  background: var(--orange);
+}
+
+.dot-high {
+  background: var(--red);
+}
 
 .vault-preview {
   margin-top: 10px;
@@ -274,7 +345,7 @@
   overflow: hidden;
 }
 
-.bar-track > div {
+.bar-track>div {
   height: 100%;
   background: var(--teal);
   transition: width 0.55s ease;
@@ -427,6 +498,7 @@
     opacity: 0;
     transform: translateY(16px) scale(0.97);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);

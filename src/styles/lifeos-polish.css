@@ -53,3 +53,93 @@
     gap: 10px;
   }
 }
+
+/* --- Immersive Focus Mode --- 
+   This triggers when the user starts a task or hits Immersive Mode.
+   It dims the entire rest of the application and removes structural borders.
+*/
+.immersive-focus-active {
+  --bg: #030304; 
+  --surface: #0a0a0c;
+  --surface-hover: #0a0a0c;
+  --border: transparent;
+  --border-strong: #1a1a24;
+  --text-muted: #22222a;
+  transition: background-color 0.8s ease, color 0.8s ease;
+}
+
+.immersive-focus-active .shell-sidebar {
+  opacity: 0.05;
+  pointer-events: none;
+  filter: blur(8px);
+  transition: all 0.8s ease;
+}
+
+.immersive-focus-active .shell-topbar .left-actions,
+.immersive-focus-active .shell-topbar .shell-search {
+  opacity: 0.1;
+  pointer-events: none;
+  transition: all 0.8s ease;
+}
+
+.immersive-focus-active .app-main-content article, 
+.immersive-focus-active .app-main-content section {
+  box-shadow: none !important;
+  border-color: transparent !important;
+  background-color: transparent;
+}
+
+/* Highlight specifically active things in focus mode */
+.immersive-focus-active .focus-highlight {
+  background-color: #121218 !important;
+  border: 1px solid var(--accent) !important;
+  box-shadow: 0 0 40px var(--accent-dim) !important;
+  transform: scale(1.02);
+  z-index: 10;
+  opacity: 1 !important;
+  pointer-events: auto;
+}
+
+/* --- States of Mind (Vibes) --- */
+.vibe-morning {
+  --bg: var(--light-bg);
+  --surface: var(--light-surface);
+  --surface-hover: var(--light-surface-hover);
+  --surface-raised: var(--light-surface-raised);
+  --text-primary: var(--light-text-primary);
+  --text-secondary: var(--light-text-secondary);
+  --text-muted: var(--light-text-muted);
+  --border: var(--light-border);
+  --border-strong: var(--light-border-strong);
+  
+  /* Retain morning sunshine theme */
+  --accent: var(--orange);
+  --accent-dim: var(--orange-dim);
+}
+
+.vibe-deepWork {
+  --bg: #050505;
+  --surface: #0a0a0a;
+  --surface-hover: #121212;
+  --text-primary: #FFFFFF;
+  --text-secondary: #A1A1AA;
+  --text-muted: #52525B;
+  --border: #1f1f1f;
+  --border-strong: #2f2f2f;
+  --accent: #FF3366;
+  --accent-dim: #FF336620;
+  --blue: #3B82F6;
+}
+
+.vibe-evening {
+  --bg: #1A1423;
+  --surface: #241B2F;
+  --surface-hover: #2D2338;
+  --text-primary: #FDE0D9;
+  --text-secondary: #D4A3A2;
+  --text-muted: #7A5C61;
+  --border: #3A2C40;
+  --border-strong: #4F3C55;
+  --accent: #FF8E72;
+  --accent-dim: #FF8E7220;
+}

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { loadHabitsStore, saveHabitsStore } from '../lib/habitsStore';
 import '../styles/design-system.css';
 import './Habits.css';
 
@@ -47,50 +48,11 @@ const useCountUp = (target, duration = 600) => {
 };
 
 const Habits = () => {
-  const [habits, setHabits] = useState([
-    {
-      id: 1,
-      name: 'Hydration',
-      area: 'Health',
-      type: 'Count',
-      target: 8,
-      progress: 6,
-      timerSeconds: 0,
-      timerRunning: false,
-      status: 'active',
-      streak: 14,
-      bestStreak: 21,
-      history: [true, true, false, true, true, true, false],
-    },
-    {
-      id: 2,
-      name: 'Deep Work Block',
-      area: 'Career',
-      type: 'Timer',
-      target: 60,
-      progress: 35,
-      timerSeconds: 2100,
-      timerRunning: false,
-      status: 'active',
-      streak: 7,
-      bestStreak: 16,
-      history: [true, true, true, false, true, true, true],
-    },
-    {
-      id: 3,
-      name: 'Evening Reflection',
-      area: 'Mind',
-      type: 'Boolean',
-      target: 1,
-      progress: 0,
-      timerSeconds: 0,
-      timerRunning: false,
-      status: 'active',
-      streak: 3,
-      bestStreak: 9,
-      history: [false, true, true, true, false, false, true],
-    },
-  ]);
+  const [habits, setHabits] = useState(() => loadHabitsStore());
+
+  useEffect(() => {
+    saveHabitsStore(habits);
+  }, [habits]);
 
   const [adding, setAdding] = useState(false);
   const [newHabit, setNewHabit] = useState({ name: '', area: 'Health', type: 'Boolean', target: 1 });

@@ -13,6 +13,20 @@ const AREA_COLORS = {
   'self-development': 'var(--purple)',
 };
 
+const SOURCE_ICONS = {
+  'Book': '📖',
+  'Course': '🎓',
+  'YouTube': '▶️',
+  'Self-defined': '📋'
+};
+
+const RESOURCE_ICONS = {
+  'Article': '📄',
+  'Video': '▶️',
+  'Idea': '💡',
+  'Snippet': '✂️'
+};
+
 const TABS = ['Active Learning', 'Topics', 'Notebooks', 'Notes', 'Resources'];
 
 const toId = () => Date.now() + Math.floor(Math.random() * 100000);
@@ -455,6 +469,7 @@ const Learn = () => {
 
   const deleteResource = (resourceId) => {
     setResources((prev) => prev.filter((item) => item.id !== resourceId));
+    setNotes((prev) => prev.map((n) => n.resourceId === resourceId ? { ...n, resourceId: null } : n));
     if (resourceEditing?.id === resourceId) setResourceEditing(null);
   };
 
@@ -521,21 +536,31 @@ const Learn = () => {
 
   const deleteTopic = (topicId) => {
     setTopics((prev) => prev.filter((t) => t.id !== topicId));
+    setCourses((prev) => prev.map((c) => ({ ...c, topicIds: (c.topicIds || []).filter((id) => id !== topicId) })));
+    setNotes((prev) => prev.map((n) => n.topicId === topicId ? { ...n, topicId: null } : n));
+    setResources((prev) => prev.map((r) => r.topicId === topicId ? { ...r, topicId: null } : r));
     if (topicEditing?.id === topicId) setTopicEditing(null);
     if (selectedTopic?.id === topicId) setSelectedTopic(null);
   };
 
   // ── Course Edit / Delete ──
-  const openCourseEdit = (course) => setCourseEditing({ ...course });
+  const openCourseEdit = (course) => setCourseEditing({ ...course, singleTopicId: course.topicIds?.[0] || '' });
 
   const saveCourseEdit = () => {
     if (!courseEditing?.name?.trim()) return;
-    setCourses((prev) => prev.map((c) => (c.id === courseEditing.id ? { ...c, ...courseEditing } : c)));
+    const { singleTopicId, ...rest } = courseEditing;
+    const normalized = {
+      ...rest,
+      topicIds: singleTopicId ? [Number(singleTopicId)] : [],
+    };
+    setCourses((prev) => prev.map((c) => (c.id === normalized.id ? { ...c, ...normalized } : c)));
     setCourseEditing(null);
   };
 
   const deleteCourse = (courseId) => {
     setCourses((prev) => prev.filter((c) => c.id !== courseId));
+    setNotes((prev) => prev.map((n) => n.courseId === courseId ? { ...n, courseId: null } : n));
+    setResources((prev) => prev.map((r) => r.courseId === courseId ? { ...r, courseId: null } : r));
     if (courseEditing?.id === courseId) setCourseEditing(null);
   };
 
@@ -554,6 +579,8 @@ const Learn = () => {
 
   const deleteNotebook = (notebookId) => {
     setNotebooks((prev) => prev.filter((n) => n.id !== notebookId));
+    const fallbackId = notebooks.find((n) => n.id !== notebookId)?.id || null;
+    setNotes((prev) => prev.map((n) => n.notebookId === notebookId ? { ...n, notebookId: fallbackId } : n));
     if (notebookEditing?.id === notebookId) setNotebookEditing(null);
   };
 
@@ -565,7 +592,7 @@ const Learn = () => {
       priority: 'P2',
       type: 'Manual',
       notes: resource.url ? `From resource: ${resource.url}` : '',
-      links: { resourceId: resource.id, topicId: resource.topicId },
+      links: { resourceId: resource.id, topicId: resource.topicId, courseId: resource.courseId },
     });
   };
 
@@ -601,7 +628,7 @@ const Learn = () => {
           <div className="hero-top-line">
             <h3>{activeVisibleCourse.name}</h3>
             <div className="hero-tags">
-              <span className="chip-chip">{activeVisibleCourse.source}</span>
+              <span className="chip-chip">{SOURCE_ICONS[activeVisibleCourse.source] || '📚'} {activeVisibleCourse.source}</span>
               <span className="chip-chip" style={{ borderColor: AREA_COLORS[activeVisibleCourse.domain] || 'var(--blue)' }}>{activeVisibleCourse.domain}</span>
             </div>
           </div>
@@ -680,7 +707,7 @@ const Learn = () => {
           <article className="course-item" key={course.id}>
             <div>
               <h5>{course.name}</h5>
-              <p>{course.source} · {course.domain}</p>
+              <p>{SOURCE_ICONS[course.source] || '📚'} {course.source} · {course.domain}</p>
             </div>
             <div className="course-item-right">
               <span className={`status-badge ${course.status.toLowerCase()}`}>{course.status}</span>
@@ -979,13 +1006,23 @@ const Learn = () => {
             <div className="note-meta">
               <span className="chip-chip">{note.type}</span>
               {note.topicId && (
-                <span className="chip-chip" style={{ borderColor: AREA_COLORS[note.domain] || 'var(--blue)' }}>
+                <button className="chip-chip" style={{ borderColor: AREA_COLORS[note.domain] || 'var(--blue)', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); openEntityDetail('topics', note.topicId); }}>
                   {topicMap.get(note.topicId)?.name || 'Topic'}
-                </span>
+                </button>
               )}
-              {note.notebookId && <span className="chip-chip">{notebookMap.get(note.notebookId)?.name || 'Notebook'}</span>}
+              {note.notebookId && (
+                <button className="chip-chip" style={{ cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); openEntityDetail('notebooks', note.notebookId); }}>
+                  📓 {notebookMap.get(note.notebookId)?.name || 'Notebook'}
+                </button>
+              )}
             </div>
-            <div className="mono-caption">From: {note.courseId ? (courseMap.get(note.courseId)?.name || 'Course') : 'Direct note'}</div>
+            <div className="mono-caption">
+              From: {note.courseId ? (
+                <span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={(e) => { e.stopPropagation(); openEntityDetail('courses', note.courseId); }}>
+                  {courseMap.get(note.courseId)?.name}
+                </span>
+              ) : 'Direct note'}
+            </div>
             <div className="mono-caption">{note.date}</div>
           </article>
         ))}
@@ -1110,7 +1147,16 @@ const Learn = () => {
                 <div className="resource-meta">
                   <span className="chip-chip">{resource.type}</span>
                   <span className="chip-chip" style={{ borderColor: AREA_COLORS[resource.domain] || 'var(--blue)' }}>{resource.domain}</span>
-                  {resource.topicId && <span className="chip-chip">{topicMap.get(resource.topicId)?.name || 'Topic'}</span>}
+                  {resource.topicId && (
+                    <button className="chip-chip" style={{ cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); openEntityDetail('topics', resource.topicId); }}>
+                      {topicMap.get(resource.topicId)?.name || 'Topic'}
+                    </button>
+                  )}
+                  {resource.courseId && (
+                    <button className="chip-chip" style={{ cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); openEntityDetail('courses', resource.courseId); }}>
+                      🎓 {courseMap.get(resource.courseId)?.name || 'Course'}
+                    </button>
+                  )}
                   <span className="mono-caption">{Math.floor(ageHours / 24)} days ago</span>
                 </div>
               </div>
@@ -1217,6 +1263,10 @@ const Learn = () => {
             <select value={resourceEditing.topicId || ''} onChange={(e) => setResourceEditing((prev) => ({ ...prev, topicId: e.target.value ? Number(e.target.value) : null }))}>
               <option value="">Link topic (optional)</option>
               {topics.filter((t) => t.domain === resourceEditing.domain).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+            <select value={resourceEditing.courseId || ''} onChange={(e) => setResourceEditing((prev) => ({ ...prev, courseId: e.target.value ? Number(e.target.value) : null }))}>
+              <option value="">Link course (optional)</option>
+              {courses.filter((c) => c.domain === resourceEditing.domain).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             <select value={resourceEditing.state} onChange={(e) => setResourceEditing((prev) => ({ ...prev, state: e.target.value }))}>
               <option>Pending</option>
@@ -1340,6 +1390,10 @@ const Learn = () => {
             />
             <select value={courseEditing.domain} onChange={(e) => setCourseEditing((prev) => ({ ...prev, domain: e.target.value }))}>
               {domains.map((domain) => <option key={domain.key} value={domain.key}>{domain.key}</option>)}
+            </select>
+            <select value={courseEditing.singleTopicId || ''} onChange={(e) => setCourseEditing((prev) => ({ ...prev, singleTopicId: e.target.value }))}>
+              <option value="">Link topic (optional)</option>
+              {topics.filter((t) => t.domain === courseEditing.domain).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
             <input
               type="number"

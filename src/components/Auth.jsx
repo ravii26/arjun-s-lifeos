@@ -6,30 +6,35 @@ const Auth = ({ onAuthSuccess }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!email || !password) return;
     
-    // Mocking auth successful
-    localStorage.setItem('lifeos_auth', 'true');
+    setIsLoading(true);
     
-    if (!isLogin) {
-      // If registering, push to onboarding
-      localStorage.setItem('lifeos_onboarded', 'false');
-      onAuthSuccess(false); // isNewUser = true (hasOnboarded is false)
-      navigate('/onboarding');
-    } else {
-      // If logging in, skip onboarding if they already did it
-      const hasOnboarded = localStorage.getItem('lifeos_onboarded') === 'true';
-      onAuthSuccess(hasOnboarded);
-      navigate(hasOnboarded ? '/dashboard' : '/onboarding');
-    }
+    // Faux 800ms loading delay for dramatic effect
+    setTimeout(() => {
+      localStorage.setItem('lifeos_auth', 'true');
+      
+      if (!isLogin) {
+        localStorage.setItem('lifeos_onboarded', 'false');
+        onAuthSuccess(false);
+        navigate('/onboarding');
+      } else {
+        const hasOnboarded = localStorage.getItem('lifeos_onboarded') === 'true';
+        onAuthSuccess(hasOnboarded);
+        navigate(hasOnboarded ? '/dashboard' : '/onboarding');
+      }
+    }, 800);
   };
 
   return (
     <div className="auth-screen">
+      <div className="auth-bg-blob blob-1" />
+      <div className="auth-bg-blob blob-2" />
       <div className="auth-card">
         <div className="auth-header">
           <div className="auth-logo">L</div>
@@ -69,8 +74,8 @@ const Auth = ({ onAuthSuccess }) => {
             />
           </div>
 
-          <button type="submit" className="auth-btn">
-            {isLogin ? 'Boot System' : 'Create Account'}
+          <button type="submit" className="auth-btn" disabled={isLoading}>
+            {isLoading ? <span className="auth-loader" /> : (isLogin ? 'Boot System' : 'Create Account')}
           </button>
         </form>
 

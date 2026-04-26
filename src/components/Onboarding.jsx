@@ -36,13 +36,15 @@ const Onboarding = ({ onComplete }) => {
 
   return (
     <div className="auth-screen">
+      <div className="auth-bg-blob blob-1" />
+      <div className="auth-bg-blob blob-2" />
       <div className="auth-card onboard-card">
-        <div className="auth-header" style={{ marginBottom: '16px' }}>
-          <h1>{step === 1 ? 'Design your LifeOS' : 'You are all set'}</h1>
+        <div className="auth-header" style={{ marginBottom: '24px' }}>
+          <h1>{step === 1 ? 'Design your LifeOS' : 'Initialization Complete'}</h1>
           <p>
             {step === 1 
-              ? 'Select the primary areas of your life you want to track and master.' 
-              : 'Your workspace has been compiled. You can modify areas later in Settings.'}
+              ? 'Select the core domains of your existence to master.' 
+              : 'Your digital nervous system is synchronized.'}
           </p>
         </div>
 
@@ -62,14 +64,17 @@ const Onboarding = ({ onComplete }) => {
         )}
 
         {step === 2 && (
-          <div style={{ textAlign: 'center', padding: '32px 0' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚀</div>
-            <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
-              {selectedAreas.length} Areas Initialized
+          <div className="onboard-success-flow">
+            <div className="success-icon">✨</div>
+            <h3 className="success-title">
+              {selectedAreas.length} Domains Loaded
             </h3>
-            <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '13px', marginTop: '8px' }}>
-              Building initial habits... Syncing local storage...
+            <p className="success-caption">
+              Initializing neural links... Compiling habits... 
             </p>
+            <div className="success-progress-track">
+               <div className="success-progress-fill" />
+            </div>
           </div>
         )}
 

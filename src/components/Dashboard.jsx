@@ -1,4 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useAppContext } from '../context/AppContext';
+import { loadTasksStore, saveTasksStore } from '../lib/tasksStore';
+import { loadHabitsStore, saveHabitsStore } from '../lib/habitsStore';
+import { loadAreasStore } from '../lib/areasStore';
 import '../styles/design-system.css';
 import './Dashboard.css';
 
@@ -41,29 +45,25 @@ const useCountUp = (target, duration = 600) => {
 };
 
 const Dashboard = () => {
-  const [tasks, setTasks] = useState([
-    { id: 1, title: 'Finalize architecture deck', area: 'Career', priority: 'P1', done: false },
-    { id: 2, title: '45 min strength training', area: 'Health', priority: 'P2', done: true },
-    { id: 3, title: 'Review cashflow sheet', area: 'Finance', priority: 'P1', done: false },
-  ]);
+  const [tasks, setTasks] = useState(() => loadTasksStore());
 
-  const [habits, setHabits] = useState([
-    { id: 1, name: 'Hydration', current: 5, target: 8, streak: 12 },
-    { id: 2, name: '20m Learning', current: 1, target: 1, streak: 9 },
-  ]);
+  useEffect(() => {
+    saveTasksStore(tasks);
+  }, [tasks]);
 
-  const [areas, setAreas] = useState([
-    { name: 'Career', score: 42, trend: '+4', stat: '2/3 tasks' },
-    { name: 'Health', score: 71, trend: '+3', stat: '1/1 task' },
-    { name: 'Mind', score: 58, trend: '+1', stat: '1/2 habits' },
-    { name: 'Finance', score: 39, trend: '-5', stat: '0/1 tasks' },
-    { name: 'Relationships', score: 51, trend: '→', stat: '1 check-in' },
-    { name: 'Creative', score: 64, trend: '+2', stat: '2 outputs' },
-  ]);
+  const [habits, setHabits] = useState(() => loadHabitsStore());
+
+  useEffect(() => {
+    saveHabitsStore(habits);
+  }, [habits]);
+
+  const [areas, setAreas] = useState(() => loadAreasStore().overview);
 
   const [timerRunning, setTimerRunning] = useState(true);
   const [timerSeconds, setTimerSeconds] = useState(1532);
   const [focusLabel, setFocusLabel] = useState('Focus Work');
+
+  const { isFocusMode, toggleFocusMode } = useAppContext();
 
   useEffect(() => {
     if (!timerRunning) return;
@@ -71,9 +71,10 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, [timerRunning]);
 
-  const doneToday = tasks.filter((task) => task.done).length;
-  const completionPct = Math.round((doneToday / tasks.length) * 100);
-  const habitDone = habits.filter((habit) => habit.current >= habit.target).length;
+  const todayTasks = tasks.filter((task) => task.lane === 'today');
+  const doneToday = todayTasks.filter((task) => task.done).length;
+  const completionPct = todayTasks.length ? Math.round((doneToday / todayTasks.length) * 100) : 0;
+  const habitDone = habits.filter((habit) => habit.progress >= habit.target).length;
   const avgScore = Math.round(areas.reduce((sum, area) => sum + area.score, 0) / areas.length);
   const habitsPct = Math.round((habitDone / habits.length) * 100);
 
@@ -91,9 +92,9 @@ const Dashboard = () => {
   const animatedWeakest = useCountUp(weakestArea?.score ?? 0, 700);
 
   const nextAction = useMemo(() => {
-    const lowAreaTask = tasks.find((task) => !task.done && task.area === weakestArea.name);
-    return lowAreaTask || tasks.find((task) => !task.done) || null;
-  }, [tasks, weakestArea]);
+    const lowAreaTask = todayTasks.find((task) => !task.done && task.area === weakestArea.name);
+    return lowAreaTask || todayTasks.find((task) => !task.done) || null;
+  }, [todayTasks, weakestArea]);
 
   const markNextActionDone = () => {
     if (!nextAction) return;
@@ -120,7 +121,7 @@ const Dashboard = () => {
 
   // Random data generator for the mock matrix to keep it mostly static per render
   const matrixData = useMemo(() => {
-    return Array.from({ length: 14 }).map(() => 
+    return Array.from({ length: 14 }).map(() =>
       Array.from({ length: 7 }).map(() => Math.random() > 0.3 ? Math.random() * 0.8 + 0.2 : 0)
     );
   }, []);
@@ -156,11 +157,11 @@ const Dashboard = () => {
         <article className="task-list-card">
           <div className="card-head">
             <h4>Today Tasks</h4>
-            <span>{doneToday}/{tasks.length} done</span>
+            <span>{doneToday}/{todayTasks.length} done</span>
           </div>
           <div className="progress-track"><div style={{ width: `${completionPct}%` }} /></div>
           <ul>
-            {tasks.map((task) => (
+            {todayTasks.slice(0, 6).map((task) => (
               <li key={task.id}>
                 <input
                   type="checkbox"
@@ -191,7 +192,7 @@ const Dashboard = () => {
               <article className="snapshot-card">
                 <small>Execution</small>
                 <strong>{animatedCompletion}%</strong>
-                <span>{doneToday}/{tasks.length} tasks complete</span>
+                <span>{doneToday}/{todayTasks.length} tasks complete</span>
               </article>
               <article className="snapshot-card">
                 <small>Habits</small>
@@ -208,13 +209,13 @@ const Dashboard = () => {
             <div className="area-grid">
               {areas.map((area) => (
                 <article className="area-card" key={area.name} style={{ '--ring-score': `${area.score}%` }}>
-                  <div className="score-ring" style={{ '--ring-color': AREA_COLORS[area.name], '--score': `${area.score}%` }}>
+                  <div className="score-ring" style={{ '--ring-color': area.color || AREA_COLORS[area.name], '--score': `${area.score}%` }}>
                     <span>{area.score}</span>
                   </div>
                   <div>
-                    <h5 style={{ color: AREA_COLORS[area.name] }}>{area.name}</h5>
+                    <h5 style={{ color: area.color || AREA_COLORS[area.name] }}>{area.name}</h5>
                     <p className={`trend ${area.trend.startsWith('+') ? 'up' : area.trend.startsWith('-') ? 'down' : 'flat'}`}>{area.trend}</p>
-                    <small>{area.stat}</small>
+                    <small>{area.tasks} tasks</small>
                   </div>
                 </article>
               ))}
@@ -246,13 +247,13 @@ const Dashboard = () => {
                 {matrixData.map((col, colIdx) => (
                   <div key={colIdx} className="matrix-col">
                     {col.map((val, cellIdx) => (
-                      <div 
-                        key={cellIdx} 
-                        className="matrix-cell" 
-                        style={{ 
+                      <div
+                        key={cellIdx}
+                        className="matrix-cell"
+                        style={{
                           background: val === 0 ? 'var(--surface-raised)' : 'var(--teal)',
-                          opacity: val === 0 ? 1 : val 
-                        }} 
+                          opacity: val === 0 ? 1 : val
+                        }}
                       />
                     ))}
                   </div>
@@ -264,7 +265,7 @@ const Dashboard = () => {
       </section>
 
       <section className="dashboard-col right">
-        <article className="timer-card">
+        <article className={`timer-card ${isFocusMode ? 'focus-highlight' : ''}`}>
           <h4>{focusLabel}</h4>
           <p>{hh}:{mm}:{ss}</p>
           <div className="row">
@@ -275,24 +276,31 @@ const Dashboard = () => {
               Reset
             </button>
           </div>
+          <button
+            className="btn accent"
+            style={{ width: '100%', marginTop: '12px' }}
+            onClick={toggleFocusMode}
+          >
+            {isFocusMode ? 'Exit Immersive Mode' : 'Enter Immersive Mode'}
+          </button>
         </article>
 
         <article className="habit-card">
           <h4>Quick Habit Log</h4>
-          {habits.map((habit) => (
+          {habits.slice(0, 4).map((habit) => (
             <div className="habit-row" key={habit.id}>
               <span>{habit.name}</span>
               <div className="habit-controls">
                 <button
                   className="btn tiny"
-                  onClick={() => setHabits((prev) => prev.map((h) => (h.id === habit.id ? { ...h, current: Math.max(0, h.current - 1) } : h)))}
+                  onClick={() => setHabits((prev) => prev.map((h) => (h.id === habit.id ? { ...h, progress: Math.max(0, h.progress - 1) } : h)))}
                 >
                   -
                 </button>
-                <b>{habit.current}/{habit.target}</b>
+                <b>{habit.progress}/{habit.target}</b>
                 <button
                   className="btn tiny"
-                  onClick={() => setHabits((prev) => prev.map((h) => (h.id === habit.id ? { ...h, current: Math.min(h.target, h.current + 1) } : h)))}
+                  onClick={() => setHabits((prev) => prev.map((h) => (h.id === habit.id ? { ...h, progress: Math.min(h.target, h.progress + 1) } : h)))}
                 >
                   +
                 </button>

@@ -1,7 +1,7 @@
 export const TASKS_STORAGE_KEY = 'lifeos.tasks.v1';
 
 const DEFAULT_TASKS = [
-  { id: 1, title: 'Finalize architecture deck', area: 'Career', priority: 'P1', type: 'Boolean', done: false, lane: 'today' },
+  { id: 1, title: 'Finalize architecture deck', area: 'Career', priority: 'P1', type: 'Boolean', done: false, lane: 'today', isStale: true },
   { id: 2, title: '45 min strength training', area: 'Health', priority: 'P2', type: 'Timer', done: true, lane: 'today', timerSeconds: 1380, timerRunning: false },
   { id: 3, title: 'Create sprint estimation rubric', area: 'Career', priority: 'P2', type: 'Manual', done: false, lane: 'backlog' },
   { id: 4, title: 'Write investment review note', area: 'Finance', priority: 'P1', type: 'Boolean', done: false, lane: 'backlog' },

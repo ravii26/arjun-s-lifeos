@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import '../styles/design-system.css';
 import './Vault.css';
 
+export const VAULT_STORAGE_KEY = 'lifeos.vault.v1';
+
+
 const AREA_COLORS = {
   coding: 'var(--blue)',
   health: 'var(--teal)',
@@ -152,7 +155,19 @@ const useCountUp = (target, duration = 650) => {
 };
 
 const Vault = () => {
-  const [items, setItems] = useState(initialItems);
+  const [items, setItems] = useState(() => {
+    try {
+      const raw = localStorage.getItem(VAULT_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : initialItems;
+    } catch {
+      return initialItems;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(items));
+  }, [items]);
+
   const [triggeredMode, setTriggeredMode] = useState(false);
   const [triggerIndex, setTriggerIndex] = useState(0);
   const [tagFilter, setTagFilter] = useState('all');
@@ -161,6 +176,7 @@ const Vault = () => {
   const [detailItem, setDetailItem] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [insightOpen, setInsightOpen] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
 
   const [createState, setCreateState] = useState({
     type: 'Note',
@@ -458,7 +474,32 @@ const Vault = () => {
   };
 
   const renderLibrary = () => (
-    <section className="vault-screen">
+    <section 
+      className={`vault-screen ${isDragging ? 'dragging' : ''}`}
+      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+      onDragLeave={() => setIsDragging(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        setShowCreate(true);
+        // Faux auto-fill for drag drop
+        const text = e.dataTransfer.getData('text');
+        if (text) {
+          setCreateState(prev => ({ ...prev, content: text, type: text.startsWith('http') ? 'Video' : 'Note' }));
+        } else {
+          setCreateState(prev => ({ ...prev, title: 'Uploaded File' }));
+        }
+      }}
+    >
+      {isDragging && (
+        <div className="vault-dropzone-overlay">
+          <div className="vault-dropzone-box">
+            <h2>Drop to save to Vault</h2>
+            <p>Upload files, images, or paste text</p>
+          </div>
+        </div>
+      )}
+
       <header className="vault-head">
         <div>
           <h1>Vault</h1>
@@ -517,7 +558,7 @@ const Vault = () => {
         </div>
 
         <div className="toggle-row">
-          {['Grid', 'List'].map((mode) => (
+          {['Gallery', 'Grid', 'List'].map((mode) => (
             <button key={mode} className={`vault-chip ${viewMode === mode ? 'selected' : ''}`} onClick={() => setViewMode(mode)}>{mode}</button>
           ))}
         </div>
@@ -540,7 +581,9 @@ const Vault = () => {
                 {item.uses >= 5 && <span className="mono">{Math.round((item.helpful / item.uses) * 100)}% helpful</span>}
               </div>
 
-              {renderItemPreview(item)}
+              {viewMode === 'Gallery' && item.type === 'Video' ? (
+                <div className="gallery-media" style={{ backgroundImage: `url(${item.thumbnail})` }} />
+              ) : renderItemPreview(item)}
 
               <div className="vault-bottom">
                 <div className="chip-row">
