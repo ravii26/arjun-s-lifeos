@@ -4,7 +4,7 @@
   /* Typography */
   --font-display: 'Syne', sans-serif;
   --font-mono: 'DM Mono', monospace;
-  --font-ui: 'Geist', sans-serif;
+  --font-ui: 'Plus Jakarta Sans', sans-serif;
 
   /* Font Weights */
   --weight-bold: 700;
@@ -30,43 +30,56 @@
   --line-data: 24px;
 
   /* Colors */
-  /* Dark Mode */
-  --bg: #080809;
-  --surface: #0F0F11;
-  --surface-hover: #141418;
-  --surface-raised: #18181F;
-  --border: #1C1C22;
-  --border-strong: #2A2A35;
-  --text-primary: #F0F0F5;
-  --text-secondary: #888896;
-  --text-muted: #44444F;
+  /* Dark Mode (Default) */
+  --bg: #070709;
+  --surface: #0e0e11;
+  --surface-hover: #16161b;
+  --surface-raised: #1d1d24;
+  --border: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --text-primary: #f3f3f7;
+  --text-secondary: #a0a0be;
+  --text-muted: #5c5c70;
 
-  /* Light Mode */
-  --light-bg: #F8F8FA;
-  --light-surface: #FFFFFF;
-  --light-surface-hover: #F2F2F6;
-  --light-surface-raised: #FAFAFA;
-  --light-border: #E4E4EC;
-  --light-border-strong: #CDCDD8;
-  --light-text-primary: #0A0A0F;
-  --light-text-secondary: #55555F;
-  --light-text-muted: #AAAABC;
+  /* Light Mode Override variables */
+  --light-bg: #f8f8fa;
+  --light-surface: #ffffff;
+  --light-surface-hover: #f2f2f7;
+  --light-surface-raised: #fafafc;
+  --light-border: rgba(0, 0, 0, 0.06);
+  --light-border-strong: rgba(0, 0, 0, 0.12);
+  --light-text-primary: #0a0a0f;
+  --light-text-secondary: #555566;
+  --light-text-muted: #9999aa;
 
   /* Accent Colors */
-  --accent: #C8FF57;
-  --accent-dim: #C8FF5720;
-  --blue: #4D9CFF;
-  --blue-dim: #4D9CFF18;
-  --orange: #FF7A45;
-  --orange-dim: #FF7A4518;
-  --purple: #9D7AFF;
-  --purple-dim: #9D7AFF18;
-  --pink: #FF5C8A;
-  --pink-dim: #FF5C8A18;
-  --teal: #2DDDB4;
-  --teal-dim: #2DDDB418;
-  --red: #FF4A6B;
-  --red-dim: #FF4A6B18;
+  --accent: #c8ff57;
+  --accent-dim: rgba(200, 255, 87, 0.1);
+  --accent-glow: 0 0 20px rgba(200, 255, 87, 0.25);
+  
+  --blue: #4d9cff;
+  --blue-dim: rgba(77, 156, 255, 0.1);
+  --blue-glow: 0 0 20px rgba(77, 156, 255, 0.2);
+  
+  --orange: #ff7a45;
+  --orange-dim: rgba(255, 122, 69, 0.1);
+  --orange-glow: 0 0 20px rgba(255, 122, 69, 0.2);
+  
+  --purple: #9d7aff;
+  --purple-dim: rgba(157, 122, 255, 0.1);
+  --purple-glow: 0 0 20px rgba(157, 122, 255, 0.2);
+  
+  --pink: #ff5c8a;
+  --pink-dim: rgba(255, 92, 138, 0.1);
+  --pink-glow: 0 0 20px rgba(255, 92, 138, 0.2);
+  
+  --teal: #2dddb4;
+  --teal-dim: rgba(45, 221, 180, 0.1);
+  --teal-glow: 0 0 20px rgba(45, 221, 180, 0.2);
+  
+  --red: #ff4a6b;
+  --red-dim: rgba(255, 74, 107, 0.1);
+  --red-glow: 0 0 20px rgba(255, 74, 107, 0.2);
 
   /* Area Colors */
   --career: var(--blue);
@@ -95,7 +108,27 @@
   --radius-xl: 24px;
 
   /* Motion */
-  --motion-fast: 150ms ease;
-  --motion-base: 250ms ease-out;
+  --motion-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
   --motion-spring: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  
+  /* Glassmorphism Styles */
+  --glass-bg: rgba(14, 14, 17, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.05);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] {
+  --bg: var(--light-bg);
+  --surface: var(--light-surface);
+  --surface-hover: var(--light-surface-hover);
+  --surface-raised: var(--light-surface-raised);
+  --border: var(--light-border);
+  --border-strong: var(--light-border-strong);
+  --text-primary: var(--light-text-primary);
+  --text-secondary: var(--light-text-secondary);
+  --text-muted: var(--light-text-muted);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.05);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
 }

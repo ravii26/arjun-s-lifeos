@@ -1,10 +1,22 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import * as domainService from "../lib/domainService";
 
 export interface Task {
   id: string;
   title: string;
   completed: boolean;
   areaKey: string;
+  lane?: string;
+  priority?: string;
+}
+
+export interface Project {
+  id: string;
+  title: string;
+  areaKey: string;
+  status: 'active' | 'completed' | 'on-hold';
+  progress: number;
+  courseId?: string;
 }
 
 export interface Habit {
@@ -12,6 +24,7 @@ export interface Habit {
   title: string;
   streak: number;
   completedToday: boolean;
+  areaKey?: string;
 }
 
 export interface VaultItem {
@@ -40,12 +53,16 @@ interface AppContextType {
   currentVibe: string;
   setVibe: (vibe: string) => void;
   
-  // Mock Data
+  // Domain Data
   tasks: Task[];
+  addTask: (task: Omit<Task, 'id'>) => void;
   toggleTask: (id: string) => void;
   
   habits: Habit[];
   toggleHabit: (id: string) => void;
+  
+  projects: Project[];
+  addProject: (project: Omit<Project, 'id'>) => void;
   
   vaultItems: VaultItem[];
   
@@ -62,6 +79,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [currentVibe, setVibe] = useState('default');
   const [toasts, setToasts] = useState<Toast[]>([]);
 
+  // Domain State
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [habits, setHabits] = useState<Habit[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [vaultItems, setVaultItems] = useState<VaultItem[]>([]);
+
+  // Initialize from storage
+  useEffect(() => {
+    setTasks(domainService.getTasks());
+    setHabits(domainService.getHabits());
+    setProjects(domainService.getProjects());
+    // Seed vault if empty
+    const v = domainService.getHabits(); // wait, check vault
+  }, []);
+
   const addToast = (toast: Omit<Toast, 'id'>) => {
     const id = Date.now();
     setToasts(prev => [{ ...toast, id }, ...prev].slice(0, 3));
@@ -72,36 +104,30 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  // Centralized High-Fidelity Mock Data
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: '1', title: 'Complete high-fidelity prototype', completed: false, areaKey: 'career' },
-    { id: '2', title: 'Morning workout session', completed: true, areaKey: 'health' },
-    { id: '3', title: 'Read 20 pages of Naval', completed: false, areaKey: 'mind' },
-    { id: '4', title: 'Review Q3 financial goals', completed: false, areaKey: 'finance' }
-  ]);
-
-  const [habits, setHabits] = useState<Habit[]>([
-    { id: '1', title: 'Deep Work Block', streak: 12, completedToday: false },
-    { id: '2', title: 'Meditation', streak: 5, completedToday: true },
-    { id: '3', title: 'Zero Inbox', streak: 21, completedToday: false },
-  ]);
-
-  const [vaultItems] = useState<VaultItem[]>([
-    { id: '1', title: 'Naval Ravikant on Wealth', type: 'Podcast', tags: ['mind', 'finance'] },
-    { id: '2', title: 'The Psychology of Money', type: 'Book Note', tags: ['finance'] },
-    { id: '3', title: 'Dopamine Detox Protocol', type: 'System', tags: ['health', 'focus'] },
-  ]);
-
-  const toggleFocusMode = () => setIsFocusMode(prev => !prev);
-  const setFocusMode = (val: boolean) => setIsFocusMode(val);
+  const addTask = (task: Omit<Task, 'id'>) => {
+    const newTask = domainService.addTask(task as any);
+    setTasks(prev => [newTask as any, ...prev]);
+  };
 
   const toggleTask = (id: string) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+    const next = tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+    setTasks(next);
+    domainService.saveTasks(next);
   };
 
   const toggleHabit = (id: string) => {
-    setHabits(prev => prev.map(h => h.id === id ? { ...h, completedToday: !h.completedToday } : h));
+    const next = habits.map(h => h.id === id ? { ...h, completedToday: !h.completedToday } : h);
+    setHabits(next);
+    domainService.saveHabits(next);
   };
+
+  const addProject = (project: Omit<Project, 'id'>) => {
+    const newProject = domainService.addProject(project as any);
+    setProjects(prev => [newProject as any, ...prev]);
+  };
+
+  const toggleFocusMode = () => setIsFocusMode(prev => !prev);
+  const setFocusMode = (val: boolean) => setIsFocusMode(val);
 
   return (
     <AppContext.Provider value={{
@@ -109,9 +135,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       toggleFocusMode,
       setFocusMode,
       tasks,
+      addTask,
       toggleTask,
       habits,
       toggleHabit,
+      projects,
+      addProject,
       vaultItems,
       currentVibe,
       setVibe,
@@ -125,6 +154,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     </AppContext.Provider>
   );
 };
+
 
 export const useAppContext = () => {
   const context = useContext(AppContext);

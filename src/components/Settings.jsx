@@ -220,7 +220,7 @@ const Settings = ({ onLogout }) => {
         <p>{goal}</p>
         <span className="mono">Goal end date: {goalEndDate}</span>
         <div className="goal-buttons">
-          <button className="secondary" onClick={() => setGoal('Health & Fitness')}>Update goal</button>
+          <button className="secondary" onClick={() => setGoal('Health & Well-being')}>Update goal</button>
         </div>
       </div>
     </section>

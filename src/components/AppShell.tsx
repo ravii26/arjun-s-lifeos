@@ -116,38 +116,44 @@ const AppShell = ({ children, pageTitle }: { children: React.ReactNode; pageTitl
             <select 
               value={currentVibe} 
               onChange={(e) => setVibe(e.target.value)}
+              className="topbar-select"
               style={{
-                background: 'transparent',
+                background: 'var(--surface-2)',
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-md)',
-                padding: '0 10px',
-                height: '36px',
-                color: 'var(--text-secondary)',
+                padding: '0 12px',
+                height: '38px',
+                color: 'var(--text-primary)',
                 cursor: 'pointer',
                 fontFamily: 'var(--font-ui)',
                 fontSize: '13px',
-                outline: 'none'
+                fontWeight: '500',
+                outline: 'none',
+                transition: 'all 0.2s'
               }}
             >
               <option value="default">Default Vibe</option>
-              <option value="morning">Morning Routine</option>
-              <option value="deepWork">Deep Work</option>
-              <option value="evening">Evening Wind-Down</option>
+              <option value="morning">☀️ Morning Routine</option>
+              <option value="deepWork">⚡ Deep Work</option>
+              <option value="evening">🌙 Evening Wind-Down</option>
             </select>
 
             <button 
                 title="Toggle Focus Mode (Sidebar)"
+                className="topbar-btn"
                 style={{ 
-                  background: isSidebarCollapsed ? 'var(--accent-dim)' : 'transparent', 
-                  border: '1px solid var(--border)', 
+                  background: isSidebarCollapsed ? 'var(--accent-dim)' : 'var(--surface-2)', 
+                  border: '1px solid ' + (isSidebarCollapsed ? 'var(--accent)' : 'var(--border)'), 
                   borderRadius: 'var(--radius-md)', 
-                  padding: '0 10px', 
-                  height: '36px', 
-                  color: isSidebarCollapsed ? 'var(--accent)' : 'var(--text-secondary)', 
+                  padding: '0 12px', 
+                  height: '38px', 
+                  color: isSidebarCollapsed ? 'var(--accent)' : 'var(--text-primary)', 
                   cursor: 'pointer', 
                   display: 'flex', 
                   alignItems: 'center', 
-                  gap: '6px' 
+                  gap: '8px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s'
                 }}
                 onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
             >
@@ -156,7 +162,7 @@ const AppShell = ({ children, pageTitle }: { children: React.ReactNode; pageTitl
             </button>
             <input 
               type="text" 
-              placeholder="Search tasks, habits, notes... (Cmd+K)" 
+              placeholder="Search (Ctrl+K)..." 
               className="shell-search" 
               readOnly 
               style={{ cursor: 'pointer' }}
@@ -211,19 +217,21 @@ const NavItem = ({ icon: IconComponent, label, path, isCollapsed, onNavigate }: 
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
-        padding: '8px 12px',
+        padding: '10px 14px',
         borderRadius: 'var(--radius-md)',
         cursor: 'pointer',
         textDecoration: 'none',
         backgroundColor: isActive ? 'var(--surface-hover)' : 'transparent',
-        color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
-        transition: 'background-color 150ms ease',
-        marginTop: '4px',
-        minHeight: '38px',
+        borderLeft: isActive ? '3px solid var(--accent)' : '3px solid transparent',
+        color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+        fontWeight: isActive ? '600' : '500',
+        transition: 'all 200ms ease',
+        marginTop: '6px',
+        minHeight: '40px',
       })}
     >
-      <IconComponent size={20} color="currentColor" />
-      {!isCollapsed && <span style={{ fontFamily: 'var(--font-ui)', fontSize: '14px', color: 'currentColor' }}>{label}</span>}
+      <IconComponent size={18} color="currentColor" />
+      {!isCollapsed && <span style={{ fontFamily: 'var(--font-ui)', fontSize: '13px', color: 'currentColor', letterSpacing: '-0.1px' }}>{label}</span>}
     </NavLink>
   );
 };

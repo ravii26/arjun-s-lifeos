@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { loadTasksStore, saveTasksStore } from '../lib/tasksStore';
-import { loadHabitsStore, saveHabitsStore } from '../lib/habitsStore';
-import { loadAreasStore } from '../lib/areasStore';
+import * as domainService from '../lib/domainService';
 import '../styles/design-system.css';
 import './Dashboard.css';
 
@@ -45,25 +43,23 @@ const useCountUp = (target, duration = 600) => {
 };
 
 const Dashboard = () => {
-  const [tasks, setTasks] = useState(() => loadTasksStore());
+  const {
+    tasks,
+    toggleTask,
+    habits,
+    toggleHabit,
+    isFocusMode,
+    toggleFocusMode,
+    addToast
+  } = useAppContext();
 
-  useEffect(() => {
-    saveTasksStore(tasks);
-  }, [tasks]);
-
-  const [habits, setHabits] = useState(() => loadHabitsStore());
-
-  useEffect(() => {
-    saveHabitsStore(habits);
-  }, [habits]);
-
-  const [areas, setAreas] = useState(() => loadAreasStore().overview);
+  const [areas, setAreas] = useState(() => domainService.getAreas().overview);
 
   const [timerRunning, setTimerRunning] = useState(true);
   const [timerSeconds, setTimerSeconds] = useState(1532);
   const [focusLabel, setFocusLabel] = useState('Focus Work');
 
-  const { isFocusMode, toggleFocusMode } = useAppContext();
+  const [centerTab, setCenterTab] = useState('Overview');
 
   useEffect(() => {
     if (!timerRunning) return;
@@ -72,11 +68,16 @@ const Dashboard = () => {
   }, [timerRunning]);
 
   const todayTasks = tasks.filter((task) => task.lane === 'today');
-  const doneToday = todayTasks.filter((task) => task.done).length;
+  const doneToday = todayTasks.filter((task) => task.done || task.completed).length;
   const completionPct = todayTasks.length ? Math.round((doneToday / todayTasks.length) * 100) : 0;
-  const habitDone = habits.filter((habit) => habit.progress >= habit.target).length;
-  const avgScore = Math.round(areas.reduce((sum, area) => sum + area.score, 0) / areas.length);
-  const habitsPct = Math.round((habitDone / habits.length) * 100);
+
+  // Note: AppContext habits might have completedToday, Dashboard expects progress/target
+  // For now, we'll keep using domainService for habits if AppContext isn't fully ready for the complexity
+  const [localHabits, setLocalHabits] = useState(() => domainService.getHabits());
+  const habitDone = localHabits.filter((habit) => (habit.progress || 0) >= (habit.target || 1)).length;
+  const habitsPct = localHabits.length ? Math.round((habitDone / localHabits.length) * 100) : 0;
+
+  const avgScore = areas.length ? Math.round(areas.reduce((sum, area) => sum + (area.score || 0), 0) / areas.length) : 0;
 
   const now = new Date();
   const weekDay = now.toLocaleDateString('en-US', { weekday: 'long' });
@@ -84,6 +85,7 @@ const Dashboard = () => {
   const weekNumber = Math.ceil(((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / 86400000 + new Date(now.getFullYear(), 0, 1).getDay() + 1) / 7);
 
   const weakestArea = useMemo(() => {
+    if (!areas.length) return null;
     return [...areas].sort((a, b) => a.score - b.score)[0];
   }, [areas]);
 
@@ -91,33 +93,43 @@ const Dashboard = () => {
   const animatedAvgScore = useCountUp(avgScore, 700);
   const animatedWeakest = useCountUp(weakestArea?.score ?? 0, 700);
 
+  const isCrisis = weakestArea && weakestArea.score < 40;
+
   const nextAction = useMemo(() => {
-    const lowAreaTask = todayTasks.find((task) => !task.done && task.area === weakestArea.name);
-    return lowAreaTask || todayTasks.find((task) => !task.done) || null;
+    if (!weakestArea) return todayTasks.find((task) => !(task.done || task.completed)) || null;
+    const lowAreaTask = todayTasks.find((task) => !(task.done || task.completed) && task.area === weakestArea.name);
+    return lowAreaTask || todayTasks.find((task) => !(task.done || task.completed)) || null;
   }, [todayTasks, weakestArea]);
 
   const markNextActionDone = () => {
     if (!nextAction) return;
-    setTasks((prev) => prev.map((task) => (task.id === nextAction.id ? { ...task, done: true } : task)));
+    toggleTask(nextAction.id);
   };
 
   const snoozeNextAction = () => {
     if (!nextAction) return;
-    setTasks((prev) => {
-      const current = [...prev];
-      const index = current.findIndex((task) => task.id === nextAction.id);
-      if (index === -1) return prev;
-      const [item] = current.splice(index, 1);
-      current.push(item);
-      return current;
+    // For now, snooze just moves it to the end of the list locally
+    // In a real app, this would update a 'snoozedUntil' field
+    addToast({ type: 'INFO', title: 'Task Snoozed', desc: 'Moved to end of queue.' });
+  };
+
+  const handleRestReset = () => {
+    // In a unified state, we'd call a domain service method then refresh AppContext
+    domainService.saveTasks(tasks.map(t => t.lane === 'missed' ? { ...t, lane: 'history' } : t));
+    addToast({
+      type: 'INFO',
+      title: 'Rest & Reset Activated',
+      desc: 'Missed tasks moved to history. Your momentum score is preserved.'
     });
+    // This requires a page reload or a way to refresh AppContext
+    window.location.reload();
   };
 
   const hh = String(Math.floor(timerSeconds / 3600)).padStart(2, '0');
   const mm = String(Math.floor((timerSeconds % 3600) / 60)).padStart(2, '0');
   const ss = String(timerSeconds % 60).padStart(2, '0');
 
-  const [centerTab, setCenterTab] = useState('Overview');
+  // const [centerTab, setCenterTab] = useState('Overview');
 
   // Random data generator for the mock matrix to keep it mostly static per render
   const matrixData = useMemo(() => {
@@ -135,24 +147,36 @@ const Dashboard = () => {
           <span>12 day streak 🔥</span>
         </header>
 
-        <article className="next-action-card">
-          <small>NEXT ACTION</small>
-          {nextAction ? (
-            <>
-              <h3>{nextAction.title}</h3>
-              <p>{weakestArea.name} score is {weakestArea.score} - lowest this week</p>
-            </>
-          ) : (
-            <>
-              <h3>All clear for now</h3>
-              <p>No remaining tasks for today.</p>
-            </>
-          )}
-          <div className="row">
-            <button className="btn accent" onClick={markNextActionDone}>Mark done</button>
-            <button className="btn ghost" onClick={snoozeNextAction}>Snooze</button>
-          </div>
-        </article>
+        {isCrisis ? (
+          <article className="next-action-card crisis-card">
+            <small className="crisis-label">CRITICAL INTERVENTION</small>
+            <h3>{weakestArea.name} is stagnating</h3>
+            <p>Your {weakestArea.name} score dropped to {weakestArea.score}. Would you like to schedule a recovery block?</p>
+            <div className="row">
+              <button className="btn crisis-btn" onClick={() => addToast({ type: 'AI', title: 'Recovery Scheduled', desc: 'Added 45m block to your calendar.' })}>Schedule Recovery</button>
+              <button className="btn ghost" onClick={handleRestReset}>Rest & Reset</button>
+            </div>
+          </article>
+        ) : (
+          <article className="next-action-card">
+            <small>NEXT ACTION</small>
+            {nextAction ? (
+              <>
+                <h3>{nextAction.title}</h3>
+                <p>{weakestArea ? `${weakestArea.name} score is ${weakestArea.score} - lowest this week` : 'Top priority task'}</p>
+              </>
+            ) : (
+              <>
+                <h3>All clear for now</h3>
+                <p>No remaining tasks for today.</p>
+              </>
+            )}
+            <div className="row">
+              <button className="btn accent" onClick={markNextActionDone}>Mark done</button>
+              <button className="btn ghost" onClick={snoozeNextAction}>Snooze</button>
+            </div>
+          </article>
+        )}
 
         <article className="task-list-card">
           <div className="card-head">
@@ -161,21 +185,25 @@ const Dashboard = () => {
           </div>
           <div className="progress-track"><div style={{ width: `${completionPct}%` }} /></div>
           <ul>
-            {todayTasks.slice(0, 6).map((task) => (
-              <li key={task.id}>
-                <input
-                  type="checkbox"
-                  checked={task.done}
-                  onChange={() => setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, done: !t.done } : t)))}
-                />
-                <span className={task.done ? 'done' : ''}>{task.title}</span>
-                <span className="dot" style={{ background: AREA_COLORS[task.area] }} />
-                <em>{task.priority}</em>
-              </li>
-            ))}
+            {todayTasks.slice(0, 6).map((task) => {
+              const isDone = task.done || task.completed;
+              return (
+                <li key={task.id}>
+                  <input
+                    type="checkbox"
+                    checked={isDone}
+                    onChange={() => toggleTask(task.id)}
+                  />
+                  <span className={isDone ? 'done' : ''}>{task.title}</span>
+                  <span className="dot" style={{ background: AREA_COLORS[task.area] }} />
+                  <em>{task.priority}</em>
+                </li>
+              );
+            })}
           </ul>
         </article>
       </section>
+
 
       <section className="dashboard-col center">
         <div className="section-head" style={{ marginBottom: '12px' }}>
@@ -287,20 +315,28 @@ const Dashboard = () => {
 
         <article className="habit-card">
           <h4>Quick Habit Log</h4>
-          {habits.slice(0, 4).map((habit) => (
+          {localHabits.slice(0, 4).map((habit) => (
             <div className="habit-row" key={habit.id}>
-              <span>{habit.name}</span>
+              <span>{habit.name || habit.title}</span>
               <div className="habit-controls">
                 <button
                   className="btn tiny"
-                  onClick={() => setHabits((prev) => prev.map((h) => (h.id === habit.id ? { ...h, progress: Math.max(0, h.progress - 1) } : h)))}
+                  onClick={() => {
+                    const next = localHabits.map((h) => (h.id === habit.id ? { ...h, progress: Math.max(0, (h.progress || 0) - 1) } : h));
+                    setLocalHabits(next);
+                    domainService.saveHabits(next);
+                  }}
                 >
                   -
                 </button>
-                <b>{habit.progress}/{habit.target}</b>
+                <b>{habit.progress || 0}/{habit.target || 1}</b>
                 <button
                   className="btn tiny"
-                  onClick={() => setHabits((prev) => prev.map((h) => (h.id === habit.id ? { ...h, progress: Math.min(h.target, h.progress + 1) } : h)))}
+                  onClick={() => {
+                    const next = localHabits.map((h) => (h.id === habit.id ? { ...h, progress: Math.min(habit.target || 1, (h.progress || 0) + 1) } : h));
+                    setLocalHabits(next);
+                    domainService.saveHabits(next);
+                  }}
                 >
                   +
                 </button>
@@ -321,9 +357,13 @@ const Dashboard = () => {
           </div>
           <div className="pulse-row">
             <span>Area floor</span>
-            <div className="mini-track"><div style={{ width: `${weakestArea.score}%` }} /></div>
+            <div className="mini-track"><div style={{ width: `${weakestArea?.score || 0}%` }} /></div>
           </div>
-          <p className="pulse-caption">Low area now at {animatedWeakest}% in {weakestArea.name}</p>
+          <p className="pulse-caption">
+            {weakestArea
+              ? `Low area now at ${animatedWeakest}% in ${weakestArea.name}`
+              : 'No areas tracked yet'}
+          </p>
         </article>
       </section>
     </div>

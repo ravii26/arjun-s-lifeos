@@ -27,7 +27,7 @@ const RESOURCE_ICONS = {
   'Snippet': '✂️'
 };
 
-const TABS = ['Active Learning', 'Topics', 'Notebooks', 'Notes', 'Resources'];
+const TABS = ['Active Learning', 'Topics', 'Projects', 'Notebooks', 'Notes', 'Resources'];
 
 const toId = () => Date.now() + Math.floor(Math.random() * 100000);
 
@@ -86,6 +86,7 @@ const Learn = () => {
   const [notebooks, setNotebooks] = useState(initialPersisted.notebooks || []);
   const [notes, setNotes] = useState(initialPersisted.notes || []);
   const [resources, setResources] = useState(initialPersisted.resources || []);
+  const [projects, setProjects] = useState(initialPersisted.projects || []);
 
   const [activeTab, setActiveTab] = useState(() => {
     const tab = queryParams.get('tab');
@@ -131,6 +132,9 @@ const Learn = () => {
 
   const [newCourse, setNewCourse] = useState({ title: '', source: 'YouTube', url: '', area: 'coding', totalUnits: '', topicId: '' });
   const [newNotebook, setNewNotebook] = useState({ name: '', domain: 'coding', description: '' });
+  const [newProject, setNewProject] = useState({ title: '', area: 'coding', objective: '' });
+  const [showProjectForm, setShowProjectForm] = useState(false);
+  const [projectEditing, setProjectEditing] = useState(null);
 
   const areaOptions = useMemo(() => {
     const keys = new Set();
@@ -177,8 +181,8 @@ const Learn = () => {
   }, [resources]);
 
   useEffect(() => {
-    saveLearningGraphStore({ domains, topics, courses, notebooks, notes, resources });
-  }, [domains, topics, courses, notebooks, notes, resources]);
+    saveLearningGraphStore({ domains, topics, courses, notebooks, notes, resources, projects });
+  }, [domains, topics, courses, notebooks, notes, resources, projects]);
 
   const pendingResources = resources.filter((resource) => resource.state === 'Pending');
 
@@ -608,6 +612,76 @@ const Learn = () => {
     setConfirmDelete(null);
   };
 
+  const renderProjects = () => {
+    const filteredProjects = projects.filter(p => matchesAreaScope(p.areaKey, p.area));
+    return (
+      <div className="learn-tab-content">
+        <div className="section-head">
+          <h4>Active Projects</h4>
+          <button className="secondary-button" onClick={() => setShowProjectForm(true)}>+ New Project</button>
+        </div>
+
+        {showProjectForm && (
+          <form className="course-form" onSubmit={(e) => {
+            e.preventDefault();
+            if (!newProject.title.trim()) return;
+            const next = { id: toId(), ...newProject, status: 'active', progress: 0 };
+            setProjects(prev => [next, ...prev]);
+            setNewProject({ title: '', area: 'coding', objective: '' });
+            setShowProjectForm(false);
+          }}>
+            <input placeholder="Project Title" value={newProject.title} onChange={e => setNewProject(p => ({ ...p, title: e.target.value }))} />
+            <select value={newProject.area} onChange={e => setNewProject(p => ({ ...p, area: e.target.value }))}>
+              {domains.map(d => <option key={d.key} value={d.key}>{d.key}</option>)}
+            </select>
+            <textarea placeholder="Objective/Outcome" value={newProject.objective} onChange={e => setNewProject(p => ({ ...p, objective: e.target.value }))} />
+            <button className="primary-button" type="submit">Create Project</button>
+          </form>
+        )}
+
+        <div className="course-list">
+          {filteredProjects.map(project => (
+            <article key={project.id} className="course-item project-item">
+              <div className="course-main">
+                <h5>{project.title}</h5>
+                <p className="mono-caption">{project.objective}</p>
+                <div className="hero-tags">
+                  <span className="chip-chip" style={{ borderColor: AREA_COLORS[project.area] }}>{project.area}</span>
+                  <span className="status-badge active">{project.status}</span>
+                </div>
+              </div>
+              <div className="course-item-right">
+                <div className="progress-wrap" style={{ width: '120px' }}>
+                  <div className="progress-track">
+                    <div style={{ width: `${project.progress}%`, background: AREA_COLORS[project.area] }} />
+                  </div>
+                  <span className="mono-caption">{project.progress}%</span>
+                </div>
+                <button className="secondary-button" onClick={() => setProjects(prev => prev.filter(p => p.id !== project.id))}>Delete</button>
+              </div>
+            </article>
+          ))}
+          {filteredProjects.length === 0 && <div className="empty-panel"><p>No projects in this area.</p></div>}
+        </div>
+      </div>
+    );
+  };
+
+  const convertCourseToProject = (course) => {
+    const next = {
+      id: toId(),
+      title: `Project: ${course.name}`,
+      area: course.domain,
+      areaKey: course.areaKey,
+      objective: `Apply lessons from ${course.name}`,
+      status: 'active',
+      progress: 0,
+      courseId: course.id
+    };
+    setProjects(prev => [next, ...prev]);
+    setActiveTab('Projects');
+  };
+
   const openEntityDetail = (type, id) => {
     navigate(`/learn/${type}/${id}`, { state: { from: `${location.pathname}${location.search}` } });
   };
@@ -650,14 +724,17 @@ const Learn = () => {
             )}
           </div>
         </div>
-        <div className="hero-actions">
-          <button className="primary-button" onClick={continueCourse} disabled={activeVisibleCourse.status === 'Completed'}>
-            {activeVisibleCourse.status === 'Completed' ? 'Completed' : 'Continue'}
-          </button>
-          <button className="secondary-button" onClick={() => openEntityDetail('courses', activeVisibleCourse.id)}>
-            View Details
-          </button>
-        </div>
+          <div className="hero-actions">
+            <button className="primary-button" onClick={continueCourse} disabled={activeVisibleCourse.status === 'Completed'}>
+              {activeVisibleCourse.status === 'Completed' ? 'Completed' : 'Continue'}
+            </button>
+            <button className="secondary-button" onClick={() => convertCourseToProject(activeVisibleCourse)}>
+              Start Project
+            </button>
+            <button className="secondary-button" onClick={() => openEntityDetail('courses', activeVisibleCourse.id)}>
+              View Details
+            </button>
+          </div>
       </div>
       )}
 
@@ -1228,6 +1305,7 @@ const Learn = () => {
 
       {activeTab === 'Active Learning' && renderActiveLearning()}
       {activeTab === 'Topics' && renderTopics()}
+      {activeTab === 'Projects' && renderProjects()}
       {activeTab === 'Notebooks' && renderNotebooks()}
       {activeTab === 'Notes' && renderNotes()}
       {activeTab === 'Resources' && renderResources()}

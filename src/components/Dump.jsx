@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
+import * as domainService from '../lib/domainService';
 import '../styles/design-system.css';
 import './Dump.css';
 
@@ -20,54 +21,7 @@ const initialDumpItems = [
     processed: false,
     suggestion: { type: 'Habit', confidence: 88, reason: 'daily behavior pattern detected' },
   },
-  {
-    id: 3,
-    content: 'Interesting thread about cashflow forecasting for freelancers https://example.com/thread',
-    createdAt: '1d ago',
-    processed: false,
-    suggestion: { type: 'Resource', confidence: 79, reason: 'link with educational context' },
-  },
-  {
-    id: 4,
-    content: 'Atomic Habits summary with highlights around identity habits',
-    createdAt: '3d ago',
-    processed: true,
-    resultType: 'Note saved',
-  },
-  {
-    id: 5,
-    content: 'Set up weekly review checkpoint for expenses and savings buckets',
-    createdAt: '5d ago',
-    processed: true,
-    resultType: 'Task created',
-  },
 ];
-
-const analyzeDump = (text) => {
-  const content = text.toLowerCase();
-
-  if (content.includes('every day') || content.includes('every morning') || content.includes('daily')) {
-    return { type: 'Habit', confidence: 90, reason: 'daily behavior pattern detected' };
-  }
-
-  if (content.includes('http') || content.includes('article') || content.includes('thread') || content.includes('video')) {
-    return { type: 'Resource', confidence: 82, reason: 'external source detected' };
-  }
-
-  if (content.includes('course') || content.includes('lesson') || content.includes('chapter')) {
-    return { type: 'Course', confidence: 81, reason: 'learning sequence language detected' };
-  }
-
-  if (content.includes('remember') || content.includes('quote')) {
-    return { type: 'Vault', confidence: 73, reason: 'memory/quote phrase detected' };
-  }
-
-  if (content.includes('note') || content.includes('summary')) {
-    return { type: 'Note', confidence: 78, reason: 'knowledge capture language detected' };
-  }
-
-  return { type: 'Task', confidence: 85, reason: 'action item language detected' };
-};
 
 const prefillByType = (text, type) => {
   const split = text.split(' ');
@@ -76,48 +30,46 @@ const prefillByType = (text, type) => {
   const defaults = {
     Task: {
       title: short,
-      area: 'coding',
+      areaKey: 'career',
       priority: 'P2',
-      tracking: 'Boolean',
-      estimate: '30m',
+      lane: 'today',
     },
     Habit: {
-      name: short,
-      area: 'health',
-      habitType: 'Build',
-      tracking: 'Boolean',
-      target: '1',
+      title: short,
+      areaKey: 'health',
+      streak: 0,
     },
     Note: {
       title: short,
-      noteType: 'Insight',
       content: text,
-      topic: '',
-      source: '',
     },
     Course: {
       title: short,
-      sourceType: 'YouTube',
-      url: '',
-      area: 'coding',
-      createTasks: false,
-      suggestedTasks: ['Finish chapter 1 notes', 'Apply one lesson in project'],
     },
     Resource: {
-      value: text,
-      resourceType: text.includes('http') ? 'Article' : 'Idea',
-      area: 'coding',
+      title: short,
     },
     Vault: {
-      vaultType: 'Note',
-      content: text,
-      stateTag: 'low_motivation',
-      purposeTag: 'focus',
-      intensity: 'Medium',
+      title: short,
     },
   };
 
   return defaults[type];
+};
+
+const analyzeDump = (content) => {
+  const text = content.toLowerCase();
+  let suggestion = { type: 'Task', confidence: 85, reason: 'Action item language' };
+
+  if (text.includes('every day') || text.includes('daily')) {
+    suggestion = { type: 'Habit', confidence: 92, reason: 'Behavioral pattern' };
+  } else if (text.includes('http') || text.includes('read')) {
+    suggestion = { type: 'Resource', confidence: 88, reason: 'Reference material' };
+  } else if (text.includes('learn') || text.includes('master')) {
+    suggestion = { type: 'Course', confidence: 80, reason: 'Growth objective' };
+  }
+
+  return suggestion;
 };
 
 const useCountUp = (target, duration = 600) => {
@@ -150,6 +102,7 @@ const useCountUp = (target, duration = 600) => {
 };
 
 const Dump = () => {
+  const { addTask, toggleHabit, addProject, addToast } = useAppContext();
   const [dumpItems, setDumpItems] = useState(initialDumpItems);
   const [input, setInput] = useState('');
   const [showProcessed, setShowProcessed] = useState(false);
@@ -160,13 +113,10 @@ const Dump = () => {
   const [formData, setFormData] = useState(prefillByType('', 'Task'));
 
   const [drafts, setDrafts] = useState([]);
-
   const [batchMode, setBatchMode] = useState(false);
   const [batchIndex, setBatchIndex] = useState(0);
-
   const [isSimulatingBatch, setIsSimulatingBatch] = useState(false);
   const [simulationId, setSimulationId] = useState(null);
-  const { addToast } = useAppContext();
 
   const unprocessed = dumpItems.filter((item) => !item.processed);
   const processed = dumpItems.filter((item) => item.processed);
@@ -174,42 +124,36 @@ const Dump = () => {
   const simulateBatchProcessing = () => {
     setIsSimulatingBatch(true);
     let i = 0;
-    
+
     const unprocList = dumpItems.filter((item) => !item.processed);
 
-    const processNext = () => {
+    const processNext = async () => {
       if (i >= unprocList.length) {
         setIsSimulatingBatch(false);
         setSimulationId(null);
         return;
       }
-      
+
       const item = unprocList[i];
       setSimulationId(item.id);
-      
-      setTimeout(() => {
-        const suggestion = item.suggestion || analyzeDump(item.content);
-        const resultLabel = `${suggestion.type} automatically created`;
-        
-        setDumpItems((prev) =>
-          prev.map((it) => (it.id === item.id ? { ...it, processed: true, resultType: resultLabel } : it))
-        );
-        
-        setTimeout(() => {
-            i++;
-            processNext();
-        }, 150);
-      }, 700);
+
+      const suggestion = await domainService.simulateAIService(item.content);
+      const resultLabel = `${suggestion.type} automatically created`;
+
+      setDumpItems((prev) =>
+        prev.map((it) => (it.id === item.id ? { ...it, processed: true, resultType: resultLabel, suggestion } : it))
+      );
+
+      i++;
+      setTimeout(processNext, 500);
     };
-    
+
     processNext();
   };
 
-  const activeBatchItem = batchMode ? unprocessed[batchIndex] : null;
-
-  const openConverter = (item) => {
-    const suggestion = item.suggestion || analyzeDump(item.content);
+  const openConverter = async (item) => {
     setSelectedItem(item);
+    const suggestion = item.suggestion || await domainService.simulateAIService(item.content);
     setSelectedType(suggestion.type);
     setFormData(prefillByType(item.content, suggestion.type));
     setConverterOpen(true);
@@ -222,15 +166,18 @@ const Dump = () => {
     setBatchIndex(0);
   };
 
-  const submitDump = () => {
+  const submitDump = async () => {
     if (!input.trim()) return;
 
-    const suggestion = analyzeDump(input);
+    const content = input;
+    setInput('');
+
+    const suggestion = await domainService.simulateAIService(content);
 
     setDumpItems((prev) => [
       {
         id: Date.now(),
-        content: input,
+        content,
         createdAt: 'just now',
         processed: false,
         suggestion,
@@ -242,21 +189,22 @@ const Dump = () => {
       type: 'AI',
       title: 'Neural link established',
       desc: `Recognized as ${suggestion.type}. AI suggests prioritizing immediately.`,
-      action: 'File now',
-      onAction: () => {
-         // Logic to auto-file if needed
-      }
     });
-
-    setInput('');
-  };
-
-  const deleteDump = (id) => {
-    setDumpItems((prev) => prev.filter((item) => item.id !== id));
   };
 
   const convertItem = () => {
     if (!selectedItem) return;
+
+    // Actual creation logic
+    if (selectedType === 'Task') {
+      addTask({
+        title: formData.title,
+        completed: false,
+        areaKey: formData.areaKey,
+        lane: formData.lane,
+        priority: formData.priority
+      });
+    }
 
     const resultLabel = `${selectedType} created`;
 
@@ -281,6 +229,10 @@ const Dump = () => {
     }
 
     closeConverter();
+  };
+
+  const deleteDump = (id) => {
+    setDumpItems((prev) => prev.filter((item) => item.id !== id));
   };
 
   const saveDraft = () => {
@@ -496,21 +448,21 @@ const Dump = () => {
                 Manual Batch
               </button>
               <button
-                 className="primary-sm"
-                 style={{ 
-                   animation: isSimulatingBatch ? 'pulse-border 1.5s infinite' : 'none',
-                   background: isSimulatingBatch ? 'var(--teal-dim)' : 'var(--accent)',
-                   color: isSimulatingBatch ? 'var(--teal)' : '#111',
-                   border: 'none',
-                   display: 'flex',
-                   alignItems: 'center',
-                   gap: '6px'
-                 }}
-                 onClick={simulateBatchProcessing}
-                 disabled={isSimulatingBatch}
-               >
-                 ✨ {isSimulatingBatch ? 'Auto-Processing...' : 'Auto-Process All'}
-               </button>
+                className="primary-sm"
+                style={{
+                  animation: isSimulatingBatch ? 'pulse-border 1.5s infinite' : 'none',
+                  background: isSimulatingBatch ? 'var(--teal-dim)' : 'var(--accent)',
+                  color: isSimulatingBatch ? 'var(--teal)' : '#111',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+                onClick={simulateBatchProcessing}
+                disabled={isSimulatingBatch}
+              >
+                ✨ {isSimulatingBatch ? 'Auto-Processing...' : 'Auto-Process All'}
+              </button>
             </div>
           )}
         </div>
@@ -523,11 +475,11 @@ const Dump = () => {
         ) : (
           <div className="dump-list">
             {unprocessed.map((item) => (
-              <article 
-                className={`dump-item ${simulationId === item.id ? 'simulating' : ''}`} 
+              <article
+                className={`dump-item ${simulationId === item.id ? 'simulating' : ''}`}
                 key={item.id}
-                style={{ 
-                  position: 'relative', 
+                style={{
+                  position: 'relative',
                   overflow: 'hidden',
                   opacity: (isSimulatingBatch && simulationId !== item.id) ? 0.6 : 1,
                   transition: 'opacity 0.3s ease'
@@ -539,7 +491,7 @@ const Dump = () => {
                     animation: 'scan-x 1s linear infinite'
                   }} />
                 )}
-                
+
                 <div className="item-main">
                   <span className="time mono">{item.createdAt}</span>
                   <p>{item.content}</p>

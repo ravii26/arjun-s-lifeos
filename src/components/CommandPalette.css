@@ -1,14 +1,14 @@
 .cmd-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(6, 6, 8, 0.6);
-  backdrop-filter: blur(6px);
+  background: rgba(3, 3, 5, 0.7);
+  backdrop-filter: blur(8px);
   z-index: 1000;
   display: flex;
   justify-content: center;
   align-items: flex-start;
   padding-top: 12vh;
-  animation: cmd-fade-in 0.2s ease;
+  animation: cmd-fade-in 200ms ease;
 }
 
 @keyframes cmd-fade-in {
@@ -18,14 +18,14 @@
 
 .cmd-modal {
   width: min(600px, 90vw);
-  background: var(--surface);
+  background: var(--surface-1);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-xl);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
+  box-shadow: var(--glass-shadow), 0 0 0 1px rgba(200, 255, 87, 0.15);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  animation: cmd-slide-down 0.3s cubic-bezier(0.2, 1, 0.2, 1);
+  animation: cmd-slide-down 300ms cubic-bezier(0.16, 1, 0.3, 1);
   max-height: 75vh;
 }
 
@@ -37,34 +37,34 @@
 .cmd-header {
   display: flex;
   align-items: center;
-  padding: 0 16px;
+  padding: 0 20px;
   border-bottom: 1px solid var(--border);
-  background: var(--surface-raised);
+  background: var(--surface-2);
 }
 
 .cmd-search-icon {
   font-size: 18px;
   color: var(--text-secondary);
-  opacity: 0.7;
 }
 
 .cmd-input {
   width: 100%;
   border: none;
   background: transparent;
-  padding: 20px 16px;
-  font-family: var(--font-display);
-  font-size: 18px;
+  padding: 18px 16px;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: var(--weight-medium);
   color: var(--text-primary);
   outline: none;
 }
 
 .cmd-input::placeholder {
-  color: color-mix(in srgb, var(--text-muted) 60%, transparent);
+  color: var(--text-muted);
 }
 
 .cmd-body {
-  padding: 12px;
+  padding: 16px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -76,6 +76,7 @@
   text-align: center;
   color: var(--text-muted);
   font-family: var(--font-ui);
+  font-size: 14px;
 }
 
 .cmd-section h4 {
@@ -84,7 +85,8 @@
   font-family: var(--font-ui);
   text-transform: uppercase;
   font-size: 10px;
-  letter-spacing: 1px;
+  font-weight: var(--weight-bold);
+  letter-spacing: 1.5px;
 }
 
 .cmd-list {
@@ -104,17 +106,21 @@
   padding: 12px;
   cursor: pointer;
   text-align: left;
-  transition: background 0.1s;
+  transition: all 0.2s;
 }
 
 .cmd-item:hover,
 .cmd-item:focus {
-  background: var(--surface-raised);
+  background: var(--surface-2);
+  border-color: var(--border-strong);
   outline: none;
 }
 
 .cmd-icon {
   font-size: 16px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
 }
 
 .cmd-content {
@@ -128,6 +134,7 @@
   color: var(--text-primary);
   font-family: var(--font-ui);
   font-size: 14px;
+  font-weight: var(--weight-medium);
 }
 
 .cmd-meta {
@@ -138,11 +145,15 @@
 
 .cmd-shortcut {
   margin-left: auto;
-  color: color-mix(in srgb, var(--accent) 60%, transparent);
+  color: var(--accent);
   font-family: var(--font-mono);
   font-size: 10px;
-  opacity: 0;
-  transition: opacity 0.2s;
+  font-weight: var(--weight-bold);
+  opacity: 0.7;
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface-3);
 }
 
 .cmd-item:hover .cmd-shortcut,
@@ -151,20 +162,23 @@
 }
 
 .cmd-footer {
-  padding: 10px 16px;
+  padding: 12px 20px;
   border-top: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface) 50%, var(--surface-raised));
+  background: var(--surface-2);
   color: var(--text-muted);
   font-size: 11px;
-  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
 }
 
 .cmd-footer b {
   color: var(--text-secondary);
-  background: var(--surface);
+  background: var(--surface-3);
   border: 1px solid var(--border);
   border-radius: 4px;
-  padding: 2px 4px;
-  margin: 0 4px;
-  font-weight: normal;
+  padding: 2px 6px;
+  font-weight: var(--weight-bold);
+  font-family: var(--font-mono);
 }
